@@ -1,0 +1,46 @@
+# lanforge-mcp example configuration — every option with its default.
+# Copy to ./config.yaml (or ~/.config/lanforge-mcp/config.yaml) and edit.
+
+systems:
+  - id: testbed-1                # referenced by tools as system_id
+    host: 192.168.1.50           # LANforge GUI host (JSON API)
+    port: 8080                   # GUI JSON API port
+    protocol: http               # http | https (https adds Basic auth)
+    verify_ssl: false
+    username: lanforge           # HTTPS API auth; also SSH default
+    password: lanforge
+    ssh_port: 22
+    # ssh_username: lanforge     # defaults to username
+    # ssh_password: lanforge     # defaults to password
+    # ssh_key_file: ~/.ssh/id_ed25519
+    timeout_sec: 120             # per-request timeout
+    connect_timeout_sec: 10
+    retries: 3                   # transient-error retries (exponential backoff)
+    retry_backoff_sec: 1.0
+
+  # A second LANforge — tools then need system_id: testbed-2
+  # - id: testbed-2
+  #   host: 192.168.1.60
+
+safety:
+  read_only: false               # block ALL mutations
+  dry_run: false                 # mutations return the planned request instead
+  require_confirmation: true     # rm_*/reset_*/reboot/... need confirm=true
+  allow_shell: true              # SSH shell_command tool enabled
+  audit_log_path: lanforge-mcp-audit.jsonl
+  extra_destructive_commands: [] # add your own command names to the confirm list
+
+scripts:
+  # Local checkout of https://github.com/greearb/lanforge-scripts (repo root or
+  # its py-scripts dir). If unset/missing, scripts run on the LANforge box via SSH.
+  local_path: null
+  remote_path: /home/lanforge/scripts/py-scripts
+  mode: auto                     # auto | local | remote
+  python_exec: python3           # interpreter used to run scripts
+  default_timeout_sec: 600
+
+reports:
+  output_dir: lanforge-reports   # markdown/html/json reports land here
+
+log_level: INFO
+log_file: null                   # optional file log (stderr is always used)

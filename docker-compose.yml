@@ -1,0 +1,22 @@
+services:
+  lanforge-mcp:
+    build: .
+    ports:
+      - "8231:8231"
+    environment:
+      # Point at your LANforge system; add a config file for multiple systems.
+      LANFORGE_MCP_HOST: ${LANFORGE_HOST:-192.168.1.50}
+      LANFORGE_MCP_USERNAME: ${LANFORGE_USERNAME:-lanforge}
+      LANFORGE_MCP_PASSWORD: ${LANFORGE_PASSWORD:-lanforge}
+      LANFORGE_MCP_LOG_LEVEL: INFO
+      # Uncomment to run the server in a safe mode:
+      # LANFORGE_MCP_READ_ONLY: "true"
+      # LANFORGE_MCP_DRY_RUN: "true"
+    volumes:
+      - lanforge-mcp-data:/data
+      # Mount a config file for multi-system setups:
+      # - ./config.yaml:/data/config.yaml:ro
+    restart: unless-stopped
+
+volumes:
+  lanforge-mcp-data:

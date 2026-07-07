@@ -1,0 +1,36 @@
+# Example custom workflow: 10-minute UDP soak with a mid-test health check.
+# Feed the 'steps' list to the run_workflow tool (or adapt it in conversation).
+
+name: udp-soak
+variables:
+  cx: soak-1
+  duration: 600
+
+steps:
+  - action: command
+    name: start traffic
+    command: set_cx_state
+    params: {test_mgr: default_tm, cx_name: "${cx}", cx_state: RUNNING}
+
+  - action: sample
+    name: first half
+    endpoint: cx
+    interval_sec: 10
+    duration_sec: "${duration}"
+    register: first_half
+
+  - action: query
+    name: mid-test station check
+    endpoint: port
+    register: ports_mid
+
+  - action: report
+    name: soak report
+    title: "UDP soak: ${cx}"
+    data: "${first_half}"
+
+  - action: command
+    name: stop traffic
+    command: set_cx_state
+    params: {test_mgr: default_tm, cx_name: "${cx}", cx_state: STOPPED}
+    on_error: continue
