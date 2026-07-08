@@ -23,6 +23,12 @@ def test_normalize_toplevel_keyed_rows():
     assert rows == [{"name": "udp-1", "state": "RUN"}]
 
 
+def test_normalize_dotted_section_becomes_eid():
+    # /radiostatus style: the section key IS the entity id.
+    rows = normalize_rows({"handler": "x", "1.1.wiphy0": {"driver": "ath10k", "channel": "36"}})
+    assert rows == [{"driver": "ath10k", "channel": "36", "eid": "1.1.wiphy0"}]
+
+
 async def test_query_ports(ctx):
     api = ctx.api()
     result = await api.query("port")
@@ -35,6 +41,16 @@ async def test_query_with_eids(ctx):
     result = await ctx.api().query("port", eids=["1", "1", "eth0"])
     assert result["row_count"] == 1
     assert result["rows"][0]["alias"] == "eth0"
+
+
+async def test_query_decodes_lanforge_encoded_columns(ctx, state):
+    # The catalog documents columns pre-encoded ("port+type", "%28us%29"); the
+    # wire must carry them decoded exactly once, however the caller wrote them.
+    await ctx.api().query("port", columns=["alias", "port+type", "4way+time+%28us%29"])
+    assert state.last_fields == "alias,port type,4way time (us)"
+
+    await ctx.api().query("port", columns=["port type"])
+    assert state.last_fields == "port type"
 
 
 async def test_command_creates_station(ctx, state):

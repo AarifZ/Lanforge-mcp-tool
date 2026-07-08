@@ -18,10 +18,26 @@
 ## Quick start
 
 ```bash
-pip install -e .                       # from a checkout (Python 3.12+)
-lanforge-mcp check --host 192.168.1.50 # verify connectivity
+git clone https://github.com/AarifZ/Lanforge-mcp-tool
+cd Lanforge-mcp-tool
+python3 -m venv .venv && . .venv/bin/activate   # Python 3.10+
+pip install -e .
+lanforge-mcp check --host 192.168.1.50 # verify connectivity FIRST
 lanforge-mcp serve --host 192.168.1.50 # stdio MCP server, single system
 ```
+
+`lanforge-mcp` and `python -m lanforge_mcp` are equivalent entry points.
+
+> **Where to run it:** anywhere that can reach the LANforge GUI (port 8080) and
+> SSH (port 22) — your laptop/PC is the normal choice; `--host` points at the
+> LANforge. Running on the LANforge box itself also works **if** its Python is
+> 3.10+ (`python3 --version`); older boxes ship older Fedora Pythons, in which
+> case just run the server from another machine instead.
+
+> **First checks if something fails:** the JSON API is served by the LANforge
+> *GUI* process, so the GUI must be running; `curl -H 'Accept: application/json'
+> http://<LF_IP>:8080/` should return JSON. See
+> [docs/troubleshooting.md](docs/troubleshooting.md).
 
 ### Claude Desktop / Claude Code
 

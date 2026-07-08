@@ -16,7 +16,7 @@ import re
 import time
 import uuid
 from collections.abc import Callable, Coroutine
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from ..api.json_api import JsonApi
@@ -40,7 +40,7 @@ ProgressCallback = Callable[[int, int, str], Coroutine[Any, Any, None]]
 
 
 def _now() -> str:
-    return datetime.now(UTC).isoformat()
+    return datetime.now(timezone.utc).isoformat()
 
 
 def _lookup(context: dict[str, Any], expr: str) -> Any:

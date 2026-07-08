@@ -35,6 +35,7 @@ class MockState:
             {"time": "2026-07-08 10:00:00", "event description": "System started", "name": "system"},
         ]
         self.commands_received: list[dict[str, Any]] = []
+        self.last_fields: str | None = None
 
     @staticmethod
     def _port(alias: str, ptype: str, ip: str = "0.0.0.0") -> dict[str, Any]:
@@ -66,6 +67,7 @@ def create_mock_app(state: MockState | None = None) -> tuple[Starlette, MockStat
         return JSONResponse({"VersionInfo": {"build_version": "5.5.1-mock"}})
 
     async def get_port(request: Request) -> JSONResponse:
+        st.last_fields = request.query_params.get("fields")
         rest = request.path_params.get("rest", "")
         rows = []
         if rest:

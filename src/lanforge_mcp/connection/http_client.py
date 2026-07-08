@@ -75,17 +75,27 @@ class LFHttpClient:
         return headers
 
     async def _request(self, method: str, url: str, **kwargs: Any) -> httpx.Response:
-        """Issue a request with session, retry and reconnect handling."""
+        """Issue a request with session, retry and reconnect handling.
+
+        Transport errors are retried with backoff and raise LFConnectionError
+        when exhausted. HTTP error statuses are returned (not raised) so
+        callers can surface the GUI's own error body; a 401 triggers one
+        session re-acquisition, and retryable 5xx get backoff retries.
+        """
         await self.ensure_session()
         last_exc: Exception | None = None
+        last_resp: httpx.Response | None = None
+        reauthed = False
         for attempt in range(self.system.retries + 1):
             try:
                 resp = await self._client.request(method, url, headers=self._headers(), **kwargs)
+                last_resp = resp
                 if resp.status_code in RETRYABLE_STATUS and attempt < self.system.retries:
                     await asyncio.sleep(self.system.retry_backoff_sec * (2**attempt))
                     continue
-                if resp.status_code == 401 and attempt == 0:
+                if resp.status_code == 401 and not reauthed:
                     # Session may have expired: drop it and re-acquire once.
+                    reauthed = True
                     self._session_id = None
                     await self.ensure_session()
                     continue
@@ -95,6 +105,10 @@ class LFHttpClient:
                 if attempt < self.system.retries:
                     await asyncio.sleep(self.system.retry_backoff_sec * (2**attempt))
                     continue
+        if last_resp is not None:
+            # Retries exhausted on an HTTP status — hand the response back so the
+            # caller reports the GUI's actual error instead of a fake outage.
+            return last_resp
         raise LFConnectionError(
             f"LANforge GUI at {self.system.base_url} unreachable after "
             f"{self.system.retries + 1} attempts: {last_exc}",

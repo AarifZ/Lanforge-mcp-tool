@@ -13,7 +13,7 @@ import contextlib
 import logging
 import shlex
 import uuid
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -30,7 +30,7 @@ TAIL_CHARS = 4000
 
 
 def _now() -> str:
-    return datetime.now(UTC).isoformat()
+    return datetime.now(timezone.utc).isoformat()
 
 
 class _Run:

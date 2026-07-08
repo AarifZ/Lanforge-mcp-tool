@@ -87,12 +87,27 @@ def check(
             console.print("[yellow]no systems configured; pass --host or a config file[/yellow]")
             return 2
         for system in systems:
+            # JSON API (the critical path for every tool)
             try:
                 status = await ctx.manager.check(system.id)
-                console.print(f"[green]OK[/green] {system.id}: {json.dumps(status)}")
+                console.print(f"[green]OK[/green]   {system.id} json-api: {json.dumps(status)}")
             except LANforgeMCPError as exc:
                 failures += 1
-                console.print(f"[red]FAIL[/red] {system.id}: {exc.message}")
+                console.print(f"[red]FAIL[/red] {system.id} json-api: {exc.message}")
+                if exc.hint:
+                    console.print(f"       hint: {exc.hint}")
+            # SSH (needed only for shell_command and remote script runs)
+            try:
+                res = await ctx.manager.get(system.id).ssh.exec("echo lanforge-mcp-ok", timeout=8)
+                if "lanforge-mcp-ok" in res.stdout:
+                    console.print(f"[green]OK[/green]   {system.id} ssh: connected as {system.ssh_username}")
+                else:
+                    console.print(f"[yellow]WARN[/yellow] {system.id} ssh: unexpected reply (exit {res.exit_code})")
+            except LANforgeMCPError as exc:
+                console.print(
+                    f"[yellow]WARN[/yellow] {system.id} ssh: {exc.message} "
+                    "(shell_command and remote scripts won't work; JSON API tools are unaffected)"
+                )
         await ctx.manager.close_all()
         return 1 if failures else 0
 

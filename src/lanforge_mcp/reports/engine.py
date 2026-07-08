@@ -12,7 +12,7 @@ import html as html_mod
 import json
 import logging
 import re
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -110,7 +110,7 @@ class ReportEngine:
     ) -> dict[str, Any]:
         """Render ``data`` into the requested formats; returns files + summary."""
         formats = formats or ["markdown", "html", "json"]
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         stamp = now.strftime("%Y%m%d-%H%M%S")
         out_dir = Path(self.config.output_dir).expanduser() / f"{stamp}-{_slug(title)}"
         out_dir.mkdir(parents=True, exist_ok=True)

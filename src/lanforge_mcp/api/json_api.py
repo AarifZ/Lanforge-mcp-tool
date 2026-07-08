@@ -15,6 +15,7 @@ from __future__ import annotations
 import logging
 import re
 from typing import Any
+from urllib.parse import unquote_plus
 
 from ..connection.http_client import LFHttpClient
 from ..errors import CommandError, translate_lanforge_message
@@ -62,7 +63,9 @@ def normalize_rows(payload: Any) -> list[dict[str, Any]]:
                 for k, v in value.items():
                     add_row(k, v)
             else:
-                add_row(None, value)
+                # Sections like "1.1.wiphy0" ARE the row's EID (e.g. /radiostatus);
+                # sections like "interface" are just containers.
+                add_row(section if "." in section else None, value)
     return rows
 
 
@@ -103,7 +106,10 @@ class JsonApi:
             url = url.rstrip("/") + "/" + _eids_to_path(eids)
         params: dict[str, Any] = {}
         if columns:
-            params["fields"] = ",".join(columns)
+            # LANforge documents its column names in pre-encoded form ("port+type",
+            # "4way+time+%28us%29"). Decode them here so httpx encodes exactly once,
+            # whether the caller passed "port type" or the encoded catalog form.
+            params["fields"] = ",".join(unquote_plus(c) for c in columns)
         payload = await self.http.get_json(url, params=params or None)
         out: dict[str, Any] = {"endpoint": url, "raw": payload}
         if normalize:

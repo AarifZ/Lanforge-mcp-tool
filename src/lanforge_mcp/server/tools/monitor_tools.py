@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import time
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Annotated
 
 from fastmcp import Context, FastMCP
@@ -71,7 +71,7 @@ def register(mcp: FastMCP, ctx: AppContext) -> None:
         while True:
             t0 = time.monotonic()
             q = await api.query(endpoint, columns=columns, eids=eids)
-            samples.append({"t": datetime.now(UTC).isoformat(), "rows": q["rows"]})
+            samples.append({"t": datetime.now(timezone.utc).isoformat(), "rows": q["rows"]})
             i += 1
             if fastmcp_ctx is not None:
                 # Progress reporting is best-effort; never fail the sample loop.

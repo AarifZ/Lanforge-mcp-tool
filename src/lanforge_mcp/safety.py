@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 import logging
 import threading
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -67,7 +67,7 @@ class AuditLog:
 
     def record(self, event: str, **fields: Any) -> None:
         entry = {
-            "ts": datetime.now(UTC).isoformat(),
+            "ts": datetime.now(timezone.utc).isoformat(),
             "event": event,
             **fields,
         }

@@ -61,7 +61,7 @@ def register(mcp: FastMCP, ctx: AppContext) -> None:
         """
         api = ctx.api(system_id)
         resources = await api.query("resource")
-        ports = await api.query("port", columns=["alias", "port+type", "phantom", "down", "ip"])
+        ports = await api.query("port", columns=["alias", "port type", "phantom", "down", "ip"])
         radios = await api.query("radiostatus")
         cxs = await api.query("cx")
 
