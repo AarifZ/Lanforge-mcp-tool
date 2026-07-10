@@ -32,5 +32,42 @@ code depends on live here; each has a regression test against the mock.
    attempted mutation (`run_command`, `raw_cli`, `shell_command`,
    `remove_ports`, `create_l3_traffic`) with no artifacts left on the system.
 
+## LANforge 5.5.2 (JsonVersion 1.0.36887), CT523c ct523c-69cb — 2026-07-11
+
+Direct testing through the MCP tools (station lifecycle, attenuator control,
+remote script execution all verified end-to-end on this unit).
+
+6. **Nine endpoints use dash-separated URLs** (`/wifi-stats`, `/status-msg`,
+   `/test-group`, `/wifi-msgs`, `/ws-msg`, `/gui-cli`, `/arm-endp`,
+   `/voip-endp`, `/wl-endp`) — the underscore forms 404. The catalog now
+   records real URLs and `query()` resolves names through it.
+
+7. **Every table carries a `candela.lanforge.Http*` pseudo-row** (HttpPort,
+   HttpEvents, HttpResource, HttpAttenuator, …) describing the API handler
+   itself. The HttpEvents row shows up in `/alerts` and looks like an active
+   alert. Diagnostics/inventory filter these (`json_api.data_rows`).
+
+8. **Bulk views are even sparser here**: default `/port` rows contain only
+   `eid` + `duration`. Explicit `?fields=` everywhere is mandatory.
+
+9. **New ports are phantom for a few seconds** while the kernel netdev is
+   created; `set_port` during that window fails with
+   `rv: 22 (Invalid argument)`. Wait for `phantom == false` first (the
+   `create_stations` tool and `sta_connect_smoke` template do). `set_port`
+   also wants the LFUtils request shape: `interest` masks plus `report_timer`.
+
+10. **Nonexistent EIDs return 404**, not empty rows: after `rm_vlan`,
+    `GET /port/1/1/<name>` 404s — that's the "confirmed deleted" signal.
+
+11. **The attenuator table lags writes by a few seconds.** `set_attenuator`
+    (val in ddB, `atten_idx` 0-7 or 'all') returns success immediately;
+    re-reading `/attenuator` right away may show stale values.
+
+12. **`/scan` returns HTTP 500** (GUI NullPointerException) when no scan
+    results exist.
+
+13. Responses may carry the warning `LFHttp: No license terms registered yet`
+    — unrelated to the request; ignore it.
+
 When you hit a new version-specific quirk: add it here, teach the mock in
 `tests/mock_lanforge.py` to emulate it, and pin it with a test.

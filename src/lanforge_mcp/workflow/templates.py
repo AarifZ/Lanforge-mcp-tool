@@ -45,6 +45,15 @@ TEMPLATES: dict[str, dict[str, Any]] = {
                 },
             },
             {
+                "action": "wait_for",
+                "name": "wait for port to materialize",
+                "endpoint": "port",
+                "eids": ["1", "${resource}", "${sta_name}"],
+                "until": {"field": "phantom", "op": "ne", "value": "True", "match": "all"},
+                "timeout_sec": 30,
+                "interval_sec": 2,
+            },
+            {
                 "action": "command",
                 "name": "set DHCP and bring port up",
                 "command": "set_port",
@@ -53,7 +62,8 @@ TEMPLATES: dict[str, dict[str, Any]] = {
                     "resource": "${resource}",
                     "port": "${sta_name}",
                     "current_flags": 0x80000000,  # use_dhcp, admin-up (down bit clear)
-                    "interest": 0x804002,  # current_flags | dhcp | ifdown
+                    "interest": 0x4804002,  # current_flags|dhcp|dhcp_rls|ifdown (LFUtils shape)
+                    "report_timer": 1500,  # required by some builds (EINVAL without it)
                 },
             },
             {

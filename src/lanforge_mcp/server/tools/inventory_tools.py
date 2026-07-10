@@ -7,6 +7,7 @@ from typing import Annotated
 from fastmcp import FastMCP
 from pydantic import Field
 
+from ...api.json_api import data_rows
 from ..context import AppContext, tool_errors
 
 
@@ -63,37 +64,42 @@ def register(mcp: FastMCP, ctx: AppContext) -> None:
         available to build tests with. summary=true returns just the counts.
         """
         api = ctx.api(system_id)
-        resources = await api.query("resource")
+        # Bulk views omit columns unless explicitly requested (see field-notes).
+        resources = await api.query("resource", columns=["hostname", "phantom", "hw version"])
         ports = await api.query("port", columns=["alias", "port type", "phantom", "down", "ip"])
-        radios = await api.query("radiostatus")
+        radios = await api.query("radiostatus", columns=["driver", "channel", "frequency", "country", "phantom"])
         cxs = await api.query("cx")
+        res_rows = data_rows(resources["rows"])
+        port_rows = data_rows(ports["rows"])
+        radio_rows = data_rows(radios["rows"])
+        cx_rows = data_rows(cxs["rows"])
 
         def _typ(row: dict) -> str:
             return str(row.get("port type") or row.get("port_type") or "").lower()
 
-        stations = [p for p in ports["rows"] if _typ(p) in ("wifi-sta", "sta", "station")]
+        stations = [p for p in port_rows if _typ(p) in ("wifi-sta", "sta", "station")]
         out = {
             "ok": True,
-            "resource_count": resources["row_count"],
-            "radio_count": radios["row_count"],
-            "port_count": ports["row_count"],
+            "resource_count": len(res_rows),
+            "radio_count": len(radio_rows),
+            "port_count": len(port_rows),
             "station_count": len(stations),
-            "cx_count": cxs["row_count"],
+            "cx_count": len(cx_rows),
         }
         if summary:
             return out
         return {
             **out,
             "resources": [
-                {k: r.get(k) for k in ("eid", "hostname", "hw version", "phantom", "load") if k in r}
-                for r in resources["rows"]
+                {k: r.get(k) for k in ("eid", "hostname", "hw version", "phantom") if k in r}
+                for r in res_rows
             ],
             "radios": [
                 {k: r.get(k) for k in ("eid", "driver", "channel", "frequency", "country", "phantom") if k in r}
-                for r in radios["rows"]
+                for r in radio_rows
             ],
             "stations": [
                 {"eid": s.get("eid"), "alias": s.get("alias"), "ip": s.get("ip")} for s in stations[:50]
             ],
-            "cx_names": [c.get("name") or c.get("eid") for c in cxs["rows"][:50]],
+            "cx_names": [c.get("name") or c.get("eid") for c in cx_rows[:50]],
         }

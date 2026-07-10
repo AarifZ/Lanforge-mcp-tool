@@ -6,6 +6,7 @@ from fastmcp import FastMCP
 
 from ..context import AppContext
 from . import (
+    attenuator_tools,
     command_tools,
     connection_tools,
     diagnostic_tools,
@@ -24,6 +25,7 @@ ALL_MODULES = (
     command_tools,
     station_tools,
     traffic_tools,
+    attenuator_tools,
     monitor_tools,
     script_tools,
     workflow_tools,

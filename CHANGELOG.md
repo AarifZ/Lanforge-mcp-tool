@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.1.3 — 2026-07-11
+
+Verified end-to-end against live hardware (LANforge 5.5.2, CT523c): station
+create → diagnose → remove, attenuator list/set/restore, remote script
+discovery + execution, all through the real MCP tools. New quirks recorded in
+docs/field-notes.md.
+
+Fixed:
+- Catalog URL extraction missed every documented URL variant (regex lacked
+  re.MULTILINE); nine endpoints (wifi_stats, status_msg, test_group, wifi_msg,
+  ws_msg, gui_cli, arm_endp, voip_endp, wl_endp) now map to their real
+  dash-separated paths, and `query()` resolves names through the catalog.
+- `create_stations` failed `set_port` with EINVAL on live systems: new ports
+  stay phantom for a few seconds and this build also requires the LFUtils
+  request shape (interest masks + report_timer). Stations are now created,
+  awaited until non-phantom, then configured. Template updated likewise.
+- Diagnostics/inventory/health treated the GUI's `candela.lanforge.Http*`
+  handler pseudo-rows as data (a bogus "active alert", a bogus resource).
+  They are filtered everywhere summaries are produced.
+- health_check semantics: real alerts drive ok=false; phantom resources/ports
+  (often intentional on testbeds) are reported as notes.
+- inventory requests explicit resource/radio columns (bulk views on 5.5.2
+  return only eid+duration) and now returns radio driver/channel details.
+- EID-specific queries that 404 (entity deleted / typo) now say so with an
+  actionable hint instead of a generic 404.
+
+Added:
+- Attenuator tool group: `attenuators` (per-module dB listing) and
+  `set_attenuation` (dB, module 1-8 or all) — verified on a CT-style
+  attenuator live, including restore.
+- Mock emulates phantom materialization, set_port-EINVAL-on-phantom, pseudo
+  rows, the attenuator table, and /wifi-stats (68 tests).
+
 ## 0.1.2 — 2026-07-11
 
 Integrates findings from the first validation run against real hardware

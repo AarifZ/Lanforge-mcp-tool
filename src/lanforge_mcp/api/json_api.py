@@ -29,6 +29,22 @@ logger = logging.getLogger(__name__)
 META_KEYS = {"handler", "uri", "warnings", "errors", "empty", "text", "timestamp"}
 
 
+def is_pseudo_row(row: dict[str, Any]) -> bool:
+    """True for the GUI's handler-status pseudo rows.
+
+    Live LANforge GUIs inject rows like ``candela.lanforge.HttpPort`` /
+    ``HttpEvents`` into every table (verified on 5.5.2). They describe the API
+    handler itself, not testbed state — diagnostics and summaries skip them.
+    """
+    ident = str(row.get("eid") or row.get("name") or row.get("entity id") or "")
+    return ident.startswith("candela.lanforge.")
+
+
+def data_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Rows minus the GUI's handler pseudo rows."""
+    return [r for r in rows if not is_pseudo_row(r)]
+
+
 def normalize_rows(payload: Any) -> list[dict[str, Any]]:
     """Flatten LANforge's quirky GET responses into a list of row dicts.
 
@@ -101,7 +117,13 @@ class JsonApi:
         (``/port/1/1/eth0``). ``eids`` are appended as a comma list, which
         LANforge accepts for row selection. ``columns`` become ``?fields=``.
         """
-        url = endpoint if endpoint.startswith("/") else f"/{endpoint}"
+        if endpoint.startswith("/"):
+            url = endpoint
+        else:
+            # Resolve catalog names to their real paths: several tables are
+            # dash-separated on the wire (wifi_stats -> /wifi-stats).
+            info = self.catalog.endpoint(endpoint)
+            url = info["url"] if info and "/" not in endpoint else f"/{endpoint}"
         if eids:
             url = url.rstrip("/") + "/" + _eids_to_path(eids)
         params: dict[str, Any] = {}
@@ -113,8 +135,8 @@ class JsonApi:
         try:
             payload = await self.http.get_json(url, params=params or None)
         except QueryError as exc:
-            table = url.strip("/").split("/")[0]
-            if table == "stations" and "404" in exc.message:
+            parts = url.strip("/").split("/")
+            if parts[0] == "stations" and "404" in exc.message:
                 # Known field quirk: some LANforge builds (e.g. 5.5.2.1) do not
                 # serve /stations even though the API client documents it.
                 raise QueryError(
@@ -123,6 +145,16 @@ class JsonApi:
                     hint="This LANforge build does not serve /stations. Query 'port' with "
                     "columns like ['alias','ip','ap','signal','port type'] instead — WiFi "
                     "stations are port rows — or use the station_status tool.",
+                ) from exc
+            if len(parts) > 1 and "404" in exc.message:
+                # EID-specific lookups 404 when the entity does not exist
+                # (verified live: /port/1/1/<removed-station> -> 404).
+                raise QueryError(
+                    f"No such entity: /{'/'.join(parts)} (LANforge returns 404 for "
+                    "nonexistent EIDs).",
+                    details=exc.details,
+                    hint=f"The {parts[0]} entity does not exist (deleted, or a typo in the EID). "
+                    f"Query '{parts[0]}' without eids to list what exists.",
                 ) from exc
             raise
         out: dict[str, Any] = {"endpoint": url, "raw": payload}

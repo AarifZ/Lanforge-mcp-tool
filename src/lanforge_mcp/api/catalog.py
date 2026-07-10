@@ -93,6 +93,8 @@ class Catalog:
     #: with the working alternative (verified live on LANforge 5.5.2.1).
     ENDPOINT_NOTES: ClassVar[dict[str, str]] = {
         "stations": "404s on some LANforge builds; query 'port' instead (WiFi stations are port rows).",
+        "scan": "may return HTTP 500 (GUI NullPointerException) when no scan results exist; "
+        "trigger a scan first (sta_scan / scan_wifi commands).",
     }
 
     def search_endpoints(self, search: str = "", limit: int = 60) -> list[dict[str, Any]]:

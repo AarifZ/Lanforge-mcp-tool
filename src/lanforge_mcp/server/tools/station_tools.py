@@ -22,12 +22,14 @@ SECURITY_FLAGS = {
 }
 FLAG_CREATE_ADMIN_DOWN = 0x1000000000
 
-#: set_port flag values (from py-json/LANforge/set_port.py).
+#: set_port flag values (from py-json/LANforge/set_port.py + LFUtils.py).
+#: The interest masks and report_timer match LFUtils' proven request shapes —
+#: this LANforge build (5.5.2) returns EINVAL for sparser set_port calls.
 SP_USE_DHCP = 0x80000000
 SP_IF_DOWN = 0x1
-SP_INTEREST_CURRENT_FLAGS = 0x2
-SP_INTEREST_DHCP = 0x4000
-SP_INTEREST_IFDOWN = 0x800000
+SP_INTEREST_UPDOWN = 0x800002  # current_flags | ifdown (LFUtils port_up/down_request)
+SP_INTEREST_DHCP_UP = 0x4804002  # + dhcp | dhcp_rls (LFUtils port_dhcp_up_request)
+SP_REPORT_TIMER_MS = 1500
 
 
 def _eid_parts(eid: str) -> tuple[int, int, str]:
@@ -92,9 +94,18 @@ def register(mcp: FastMCP, ctx: AppContext) -> None:
                 },
                 system_id=sid,
             )
-            if not res.ok:
+            if res.ok:
+                created.append(name)
+            else:
                 errors.append({"station": name, "errors": res.errors})
-                continue
+
+        # New ports stay phantom for a few seconds while the kernel netdev is
+        # created; set_port during that window fails with EINVAL (verified live
+        # on 5.5.2). Wait for materialization before configuring.
+        if created and not ctx.safety.config.dry_run:
+            await _wait_not_phantom(api, shelf, resource, created, timeout=30.0)
+
+        for name in created:
             current = SP_USE_DHCP | (SP_IF_DOWN if admin_down else 0)
             up_res = await api.command(
                 "set_port",
@@ -103,11 +114,11 @@ def register(mcp: FastMCP, ctx: AppContext) -> None:
                     "resource": resource,
                     "port": name,
                     "current_flags": current,
-                    "interest": SP_INTEREST_CURRENT_FLAGS | SP_INTEREST_DHCP | SP_INTEREST_IFDOWN,
+                    "interest": SP_INTEREST_DHCP_UP,
+                    "report_timer": SP_REPORT_TIMER_MS,
                 },
                 system_id=sid,
             )
-            created.append(name)
             if not up_res.ok:
                 errors.append({"station": name, "errors": up_res.errors, "stage": "set_port"})
 
@@ -120,6 +131,22 @@ def register(mcp: FastMCP, ctx: AppContext) -> None:
         if wait_for_ip_sec > 0 and created and not admin_down and not ctx.safety.config.dry_run:
             result["association"] = await _wait_for_ip(api, shelf, resource, created, wait_for_ip_sec)
         return result
+
+    async def _wait_not_phantom(api, shelf: int, resource: int, names: list[str], timeout: float) -> None:
+        deadline = time.monotonic() + timeout
+        pending = set(names)
+        while pending and time.monotonic() < deadline:
+            q = await api.query(
+                "port",
+                eids=[str(shelf), str(resource), ",".join(pending)],
+                columns=["alias", "phantom"],
+            )
+            for row in q["rows"]:
+                alias = str(row.get("alias") or "")
+                if alias in pending and str(row.get("phantom")).lower() != "true":
+                    pending.discard(alias)
+            if pending:
+                await asyncio.sleep(2)
 
     async def _wait_for_ip(api, shelf: int, resource: int, names: list[str], timeout: float) -> dict:
         deadline = time.monotonic() + timeout
@@ -180,7 +207,8 @@ def register(mcp: FastMCP, ctx: AppContext) -> None:
                     "resource": resource,
                     "port": port,
                     "current_flags": SP_IF_DOWN if state == "down" else 0,
-                    "interest": SP_INTEREST_CURRENT_FLAGS | SP_INTEREST_IFDOWN,
+                    "interest": SP_INTEREST_UPDOWN,
+                    "report_timer": SP_REPORT_TIMER_MS,
                 },
                 system_id=sid,
             )

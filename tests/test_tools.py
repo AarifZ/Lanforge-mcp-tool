@@ -33,6 +33,7 @@ async def test_tool_catalog_is_complete(client):
         "list_scripts", "script_schema", "run_script", "run_workflow",
         "run_workflow_template", "generate_report", "diagnose_stations",
         "diagnose_traffic", "analyze_events", "set_safety_mode",
+        "attenuators", "set_attenuation",
     }
     assert expected <= tools
 
@@ -172,6 +173,50 @@ async def test_convenience_params(client):
         assert any("note" in h for h in stations_hit["endpoints"])
         inv = result_json(await client.call_tool("inventory", {"summary": True}))
         assert inv["ok"] and "stations" not in inv and "port_count" in inv
+
+
+async def test_health_check_filters_pseudo_rows(client):
+    # The GUI injects candela.lanforge.Http* rows into every table; they are
+    # handler status, not alerts/resources — health must not fail on them.
+    async with client:
+        data = result_json(await client.call_tool("health_check", {}))
+    assert data["ok"] is True, data
+    assert data["alerts"] == 0
+    assert data["resources_total"] == 2  # pseudo row excluded, phantom kept
+    assert any("phantom" in n for n in data["notes"])  # 1.9 is phantom -> note, not failure
+
+
+async def test_wifi_stats_resolves_to_dashed_url(client):
+    async with client:
+        data = result_json(await client.call_tool("query", {"endpoint": "wifi_stats"}))
+    assert data["ok"] is True
+    assert data["endpoint"] == "/wifi-stats"
+
+
+async def test_attenuator_list_and_set(client, state):
+    async with client:
+        listing = result_json(await client.call_tool("attenuators", {}))
+        assert listing["ok"] and listing["count"] == 2  # pseudo row filtered
+        idle = next(a for a in listing["attenuators"] if a["state"] == "Idle")
+        assert idle["atten_id"] == "1.1.8036"
+        assert idle["modules_db"]["module_1"] == 0.0
+
+        result = result_json(
+            await client.call_tool(
+                "set_attenuation", {"atten_id": "1.1.8036", "attenuation_db": 10.5, "module": 0}
+            )
+        )
+        assert result["ok"], result
+        assert state.attenuators["1.1.8036"]["module 3"] == "10.5"
+
+        single = result_json(
+            await client.call_tool(
+                "set_attenuation", {"atten_id": "1.1.8036", "attenuation_db": 2.0, "module": 2}
+            )
+        )
+        assert single["ok"]
+        assert state.attenuators["1.1.8036"]["module 2"] == "2.0"
+        assert state.attenuators["1.1.8036"]["module 1"] == "10.5"  # untouched
 
 
 async def test_events_and_analyze(client):

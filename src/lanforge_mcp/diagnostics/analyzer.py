@@ -11,7 +11,7 @@ from __future__ import annotations
 import logging
 from typing import Any, ClassVar
 
-from ..api.json_api import JsonApi
+from ..api.json_api import JsonApi, data_rows
 from ..reports.engine import _to_float, summarize_samples
 
 logger = logging.getLogger(__name__)
@@ -32,29 +32,34 @@ class Diagnostics:
         self.api = api
 
     async def health_check(self) -> dict[str, Any]:
-        """Overall system health: resources, phantom ports, alerts."""
+        """Overall system health.
+
+        ``issues`` (drive ok=false) are actionable faults: real active alerts.
+        ``notes`` are conditions that are often intentional on a testbed —
+        phantom resources/ports (idle hardware removed from the chassis view).
+        """
         issues: list[str] = []
+        notes: list[str] = []
         out: dict[str, Any] = {"ok": True}
 
-        resources = await self.api.query("resource")
-        down = [
-            r.get("eid") or r.get("hostname")
-            for r in resources["rows"]
-            if str(_f(r, "phantom")).lower() == "true"
-        ]
-        out["resources_total"] = resources["row_count"]
+        # Bulk views omit columns unless requested (verified live on 5.5.2).
+        resources = await self.api.query("resource", columns=["hostname", "phantom", "hw version"])
+        res_rows = data_rows(resources["rows"])
+        down = [r.get("eid") or r.get("hostname") for r in res_rows if str(_f(r, "phantom")).lower() == "true"]
+        out["resources_total"] = len(res_rows)
         if down:
-            issues.append(f"{len(down)} resource(s) phantom/offline: {down}")
+            notes.append(f"{len(down)} resource(s) phantom/offline (often intentional): {down[:15]}")
 
         ports = await self.api.query("port", columns=["alias", "phantom", "down", "ip"])
-        phantom_ports = [p.get("eid") for p in ports["rows"] if str(_f(p, "phantom")).lower() == "true"]
-        out["ports_total"] = ports["row_count"]
+        port_rows = data_rows(ports["rows"])
+        phantom_ports = [p.get("eid") for p in port_rows if str(_f(p, "phantom")).lower() == "true"]
+        out["ports_total"] = len(port_rows)
         if phantom_ports:
-            issues.append(f"{len(phantom_ports)} phantom port(s): {phantom_ports[:20]}")
+            notes.append(f"{len(phantom_ports)} phantom port(s): {phantom_ports[:20]}")
 
         try:
             alerts = await self.api.query("alerts")
-            active = alerts["rows"]
+            active = data_rows(alerts["rows"])
             if active:
                 issues.append(f"{len(active)} active alert(s); first: {active[0]}")
             out["alerts"] = len(active)
@@ -63,6 +68,7 @@ class Diagnostics:
 
         out["ok"] = not issues
         out["issues"] = issues
+        out["notes"] = notes
         return out
 
     #: /port columns needed for station health. The bulk /port view on some
@@ -79,7 +85,7 @@ class Diagnostics:
         """Per-station health with a human-readable reason for each problem."""
         q = await self.api.query("port", eids=eids, columns=self.STATION_COLUMNS)
         stations = [
-            r for r in q["rows"]
+            r for r in data_rows(q["rows"])
             if str(_f(r, "port type", "port_type", "type") or "").lower() in ("wifi-sta", "sta", "station")
             or str(r.get("alias", "")).startswith("sta")
         ]
@@ -123,8 +129,9 @@ class Diagnostics:
     async def diagnose_traffic(self) -> dict[str, Any]:
         """Find cross-connects that exist but aren't moving traffic properly."""
         q = await self.api.query("cx")
+        rows = data_rows(q["rows"])
         findings = []
-        for cx in q["rows"]:
+        for cx in rows:
             name = cx.get("name") or cx.get("eid")
             state = str(_f(cx, "state") or "")
             bps_rx_a = _to_float(_f(cx, "bps rx a", "bps_rx_a")) or 0.0
@@ -144,12 +151,12 @@ class Diagnostics:
                     {"cx": name, "state": state, "bps_rx_a": bps_rx_a, "bps_rx_b": bps_rx_b,
                      "issues": issues}
                 )
-        return {"cx_total": q["row_count"], "problem_count": len(findings), "problems": findings}
+        return {"cx_total": len(rows), "problem_count": len(findings), "problems": findings}
 
     async def analyze_events(self, last: int = 200, keyword: str = "") -> dict[str, Any]:
         """Group recent event-log entries into disconnect/roam/DHCP patterns."""
         q = await self.api.query("events")
-        rows = q["rows"][-last:]
+        rows = data_rows(q["rows"])[-last:]
         buckets: dict[str, list[dict[str, Any]]] = {}
         patterns = {
             "disconnect": ("disconnect", "deauth", "disassoc", "link down"),

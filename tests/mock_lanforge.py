@@ -36,6 +36,19 @@ class MockState:
         ]
         self.commands_received: list[dict[str, Any]] = []
         self.last_fields: str | None = None
+        # Real attenuator (Idle) + a phantom one, mirroring the live CT523c.
+        self.attenuators: dict[str, dict[str, Any]] = {
+            "1.1.8036": {
+                "entity id": "1.1.8036", "name": "1.1.8036", "state": "Idle",
+                "script": "None",
+                **{f"module {i}": "0.0" for i in range(1, 9)},
+            },
+            "1.1.8030": {
+                "entity id": "1.1.8030", "name": "1.1.8030", "state": "Phantom",
+                "script": "None",
+                **{f"module {i}": "20.0" for i in range(1, 9)},
+            },
+        }
 
     @staticmethod
     def _port(alias: str, ptype: str, ip: str = "0.0.0.0") -> dict[str, Any]:
@@ -102,8 +115,15 @@ def create_mock_app(state: MockState | None = None) -> tuple[Starlette, MockStat
 
         rows = []
         for eid, port in selected.items():
-            row = port if shape is None else {k: port[k] for k in shape if k in port}
+            visible = {k: v for k, v in port.items() if not k.startswith("_")}
+            row = visible if shape is None else {k: visible[k] for k in shape if k in visible}
             rows.append({eid: row})
+            # Tick the materialization countdown AFTER snapshotting, so the
+            # port is seen phantom at least once before it becomes real.
+            if port.get("_phantom_reads_left", 0) > 0:
+                port["_phantom_reads_left"] -= 1
+                if port["_phantom_reads_left"] == 0:
+                    port["phantom"] = False
         if len(rows) == 1:
             return JSONResponse({"interface": next(iter(rows[0].values())), "uri": "port"})
         return JSONResponse({"interfaces": rows, "uri": "port"})
@@ -121,12 +141,30 @@ def create_mock_app(state: MockState | None = None) -> tuple[Starlette, MockStat
         return JSONResponse({"events": [{str(i): e} for i, e in enumerate(st.events)], "uri": "events"})
 
     async def get_alerts(_: Request) -> JSONResponse:
-        return JSONResponse({"alerts": [], "uri": "alerts"})
+        # Live GUIs inject a handler pseudo-row into every table (5.5.2).
+        return JSONResponse(
+            {"alerts": [{"0": {"eid": "candela.lanforge.HttpEvents", "duration": "1"}}], "uri": "alerts"}
+        )
 
     async def get_resource(_: Request) -> JSONResponse:
         return JSONResponse(
-            {"resources": [{"1.1": {"eid": "1.1", "hostname": "mock-lf", "phantom": False}}]}
+            {
+                "resources": [
+                    {"0": {"eid": "candela.lanforge.HttpResource", "duration": "2"}},
+                    {"1.1": {"eid": "1.1", "hostname": "mock-lf", "phantom": False}},
+                    {"1.9": {"eid": "1.9", "hostname": "", "phantom": True}},
+                ]
+            }
         )
+
+    async def get_attenuator(_: Request) -> JSONResponse:
+        rows: list[dict[str, Any]] = [{"0": {"eid": "candela.lanforge.HttpAttenuator", "duration": "8"}}]
+        rows += [{eid: dict(a)} for eid, a in st.attenuators.items()]
+        return JSONResponse({"attenuators": rows, "uri": "attenuator"})
+
+    async def get_wifi_stats(_: Request) -> JSONResponse:
+        # Served at the dash-separated path, like the real GUI.
+        return JSONResponse({"wifi-stats": [], "uri": "wifi-stats"})
 
     async def get_radiostatus(_: Request) -> JSONResponse:
         return JSONResponse(
@@ -153,11 +191,22 @@ def create_mock_app(state: MockState | None = None) -> tuple[Starlette, MockStat
             port = MockState._port(body["sta_name"], "WIFI-STA")
             port["ap"] = "aa:bb:cc:dd:ee:ff"
             port["signal"] = "-45"
+            # New ports are phantom until the kernel netdev appears (live 5.5.2:
+            # a couple of seconds). Emulate with a read-countdown.
+            port["phantom"] = True
+            port["_phantom_reads_left"] = 1
             st.ports[eid] = port
             st.add_event(f"Station {body['sta_name']} created")
         elif cmd == "set_port":
             eid = f"{body.get('shelf', 1)}.{body.get('resource', 1)}.{body['port']}"
             if eid in st.ports:
+                if st.ports[eid].get("phantom"):
+                    # Live 5.5.2 behavior: configuring a phantom port EINVALs.
+                    return JSONResponse(
+                        {"status": "BAD_REQUEST",
+                         "error_list": ["unable to execute set_port rv: 22 (22  Invalid argument)"]},
+                        status_code=400,
+                    )
                 current = int(body.get("current_flags", 0))
                 if current & 0x80000000:  # use_dhcp -> instantly "associate"
                     st.ports[eid]["ip"] = f"10.1.1.{next(st.ip_counter)}"
@@ -201,6 +250,16 @@ def create_mock_app(state: MockState | None = None) -> tuple[Starlette, MockStat
             if not st.ports.pop(eid, None):
                 return JSONResponse({"errors": [f"Port {eid} not found, shelf/resource wrong?"]}, status_code=404)
             st.add_event(f"Port {body['port']} removed")
+        elif cmd == "set_attenuator":
+            eid = f"{body.get('shelf', 1)}.{body.get('resource', 1)}.{body.get('serno')}"
+            atten = st.attenuators.get(eid)
+            if atten is None:
+                return JSONResponse({"errors": [f"Unknown attenuator {eid}"]}, status_code=404)
+            db_text = f"{int(body.get('val', 0)) / 10:.1f}"
+            idx = body.get("atten_idx", "all")
+            targets = range(1, 9) if idx in ("all", "ALL") else [int(idx) + 1]
+            for i in targets:
+                atten[f"module {i}"] = db_text
         elif cmd == "raw":
             line = str(body.get("cmd", ""))
             st.add_event(f"raw: {line}")
@@ -223,6 +282,8 @@ def create_mock_app(state: MockState | None = None) -> tuple[Starlette, MockStat
         Route("/resource", get_resource),
         Route("/radiostatus", get_radiostatus),
         Route("/layer4", get_layer4),
+        Route("/attenuator", get_attenuator),
+        Route("/wifi-stats", get_wifi_stats),
         Route("/help/{cmd}", help_cmd),
         Route("/cli-json/{cmd}", cli_json, methods=["POST"]),
     ]

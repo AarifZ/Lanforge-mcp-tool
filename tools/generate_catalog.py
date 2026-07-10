@@ -38,7 +38,21 @@ SKIP_PARAMS = {"self", "response_json_list", "debug", "suppress_related_commands
 
 # Doc lines in the generated client look like:  ":param alias: Name of endpoint."
 PARAM_DOC_RE = re.compile(r":param\s+(\w+):\s*(.*)")
-URL_LINE_RE = re.compile(r"^\s*(/[\w$/\-]+)\s*$")
+URL_LINE_RE = re.compile(r"^\s*(/[\w$/\-=.,]+?)\s*$", re.MULTILINE)
+
+
+def base_url_from_variants(variants: list[str], fallback: str) -> str:
+    """First path segment of the documented URLs, e.g. "/status-msg".
+
+    Every LANforge table roots at a single segment; the GUI's real paths are
+    dash-separated, so the method-name fallback (underscores) is wrong for
+    several endpoints — prefer documented variants whenever present.
+    """
+    for variant in sorted(variants, key=len):
+        first = variant.strip("/").split("/")[0]
+        if first and "$" not in first:
+            return f"/{first}"
+    return fallback
 
 
 def annotation_to_type(node: ast.expr | None) -> str:
@@ -149,9 +163,9 @@ def extract_endpoints(tree: ast.Module) -> dict[str, Any]:
                             in_cols = False
                         continue
                     columns.extend(c.strip() for c in stripped.split(",") if c.strip())
-            base_url = urls[0] if urls else f"/{name}/"
+            base_url = base_url_from_variants(urls, f"/{name}")
             endpoints[name] = {
-                "url": base_url.rstrip("/") or f"/{name}",
+                "url": base_url,
                 "url_variants": urls,
                 "columns": sorted(set(columns)),
                 "description": f"LANforge JSON GET endpoint {base_url}",

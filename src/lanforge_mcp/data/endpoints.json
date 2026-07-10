@@ -3,7 +3,12 @@
  "endpoints": {
   "adb": {
    "url": "/adb",
-   "url_variants": [],
+   "url_variants": [
+    "/adb/",
+    "/adb/$shelf_id",
+    "/adb/$shelf_id/$resource_id",
+    "/adb/$shelf_id/$resource_id/$port_id"
+   ],
    "columns": [
     "api",
     "app-id",
@@ -38,11 +43,19 @@
     "wifi+mac",
     "wifi-m"
    ],
-   "description": "LANforge JSON GET endpoint /adb/"
+   "description": "LANforge JSON GET endpoint /adb"
   },
   "alerts": {
    "url": "/alerts",
-   "url_variants": [],
+   "url_variants": [
+    "/alerts/",
+    "/alerts/$event_id",
+    "/alerts/before/$event_id",
+    "/alerts/between/$start_event_id/$end_event_id",
+    "/alerts/first/$event_count",
+    "/alerts/last/$event_count",
+    "/alerts/since/$event_id"
+   ],
    "columns": [
     "eid",
     "entity+id",
@@ -54,11 +67,16 @@
     "time-stamp",
     "type"
    ],
-   "description": "LANforge JSON GET endpoint /alerts/"
+   "description": "LANforge JSON GET endpoint /alerts"
   },
   "arm": {
    "url": "/arm",
-   "url_variants": [],
+   "url_variants": [
+    "/arm",
+    "/arm-endp",
+    "/arm-endp/$endp_name",
+    "/arm/$cx_name"
+   ],
    "columns": [
     "avg+rtt",
     "bps+a%C2%A0%E2%86%90%C2%A0b",
@@ -73,11 +91,14 @@
     "rpt+timer",
     "state"
    ],
-   "description": "LANforge JSON GET endpoint /arm/"
+   "description": "LANforge JSON GET endpoint /arm"
   },
   "arm_endp": {
-   "url": "/arm_endp",
-   "url_variants": [],
+   "url": "/arm-endp",
+   "url_variants": [
+    "/arm-endp",
+    "/arm-endp/$endp_name"
+   ],
    "columns": [
     "bps-rx-3s",
     "bps-tx-3s",
@@ -112,11 +133,20 @@
     "tx+pkts",
     "tx+rate+%28last%29"
    ],
-   "description": "LANforge JSON GET endpoint /arm_endp/"
+   "description": "LANforge JSON GET endpoint /arm-endp"
   },
   "attenuator": {
    "url": "/attenuator",
-   "url_variants": [],
+   "url_variants": [
+    "/attenuator/",
+    "/attenuator/$shelf_id",
+    "/attenuator/$shelf_id/$resource_id",
+    "/attenuator/$shelf_id/$resource_id/$port_id",
+    "/attenuators/",
+    "/attenuators/$shelf_id",
+    "/attenuators/$shelf_id/$resource_id",
+    "/attenuators/$shelf_id/$resource_id/$port_id"
+   ],
    "columns": [
     "entity+id",
     "module+1",
@@ -133,11 +163,16 @@
     "state",
     "temperature"
    ],
-   "description": "LANforge JSON GET endpoint /attenuator/"
+   "description": "LANforge JSON GET endpoint /attenuator"
   },
   "chamber": {
    "url": "/chamber",
-   "url_variants": [],
+   "url_variants": [
+    "/chamber/",
+    "/chamber/$chamber_name",
+    "/chambers/",
+    "/chambers/$chamber_name"
+   ],
    "columns": [
     "chamber",
     "chamber+connections",
@@ -162,17 +197,32 @@
     "turntable+type",
     "virtual"
    ],
-   "description": "LANforge JSON GET endpoint /chamber/"
+   "description": "LANforge JSON GET endpoint /chamber"
   },
   "control": {
    "url": "/control",
-   "url_variants": [],
+   "url_variants": [
+    "/control/$command"
+   ],
    "columns": [],
-   "description": "LANforge JSON GET endpoint /control/"
+   "description": "LANforge JSON GET endpoint /control"
   },
   "cx": {
    "url": "/cx",
-   "url_variants": [],
+   "url_variants": [
+    "/cx-group/",
+    "/cx-group/$id",
+    "/cx-groups/",
+    "/cx-groups/$id",
+    "/cx/",
+    "/cx/$cx_id",
+    "/cxg/",
+    "/cxg/$id",
+    "/cxgroup/",
+    "/cxgroup/$id",
+    "/cxgroups/",
+    "/cxgroups/$id"
+   ],
    "columns": [
     "avg+rtt",
     "bps+rx+a",
@@ -191,17 +241,23 @@
     "state",
     "type"
    ],
-   "description": "LANforge JSON GET endpoint /cx/"
+   "description": "LANforge JSON GET endpoint /cx"
   },
   "database": {
    "url": "/database",
-   "url_variants": [],
+   "url_variants": [
+    "/database/",
+    "/databases/"
+   ],
    "columns": [],
-   "description": "LANforge JSON GET endpoint /database/"
+   "description": "LANforge JSON GET endpoint /database"
   },
   "dut": {
    "url": "/dut",
-   "url_variants": [],
+   "url_variants": [
+    "/dut/",
+    "/dut/$name"
+   ],
    "columns": [
     "api+version",
     "bssid-1",
@@ -245,11 +301,14 @@
     "sw+info",
     "wan"
    ],
-   "description": "LANforge JSON GET endpoint /dut/"
+   "description": "LANforge JSON GET endpoint /dut"
   },
   "endp": {
    "url": "/endp",
-   "url_variants": [],
+   "url_variants": [
+    "/endp/",
+    "/endp/$endp_id"
+   ],
    "columns": [
     "1st+rx",
     "a%2Fb",
@@ -317,17 +376,27 @@
     "tx+rate+ll",
     "type        # hidden columns:"
    ],
-   "description": "LANforge JSON GET endpoint /endp/"
+   "description": "LANforge JSON GET endpoint /endp"
   },
   "endsession": {
    "url": "/endsession",
-   "url_variants": [],
+   "url_variants": [
+    "/endsession"
+   ],
    "columns": [],
-   "description": "LANforge JSON GET endpoint /endsession/"
+   "description": "LANforge JSON GET endpoint /endsession"
   },
   "events": {
    "url": "/events",
-   "url_variants": [],
+   "url_variants": [
+    "/events/",
+    "/events/$event_id",
+    "/events/before/$event_id",
+    "/events/between/$start_event_id/$end_event_id",
+    "/events/first/$event_count",
+    "/events/last/$event_count",
+    "/events/since/$event_id"
+   ],
    "columns": [
     "eid",
     "entity+id",
@@ -339,11 +408,14 @@
     "time-stamp",
     "type"
    ],
-   "description": "LANforge JSON GET endpoint /events/"
+   "description": "LANforge JSON GET endpoint /events"
   },
   "fileio": {
    "url": "/fileio",
-   "url_variants": [],
+   "url_variants": [
+    "/fileio/",
+    "/fileio/$endp_id"
+   ],
    "columns": [
     "buf-rd",
     "buf-wr",
@@ -373,11 +445,14 @@
     "type",
     "write-bps"
    ],
-   "description": "LANforge JSON GET endpoint /fileio/"
+   "description": "LANforge JSON GET endpoint /fileio"
   },
   "generic": {
    "url": "/generic",
-   "url_variants": [],
+   "url_variants": [
+    "/generic/",
+    "/generic/$endp_id"
+   ],
    "columns": [
     "bps+rx",
     "bps+tx",
@@ -426,17 +501,22 @@
     "tx+video+pkt+drop+%25",
     "type"
    ],
-   "description": "LANforge JSON GET endpoint /generic/"
+   "description": "LANforge JSON GET endpoint /generic"
   },
   "gui_cli": {
-   "url": "/gui_cli",
-   "url_variants": [],
+   "url": "/gui-cli",
+   "url_variants": [
+    "/gui-cli/"
+   ],
    "columns": [],
-   "description": "LANforge JSON GET endpoint /gui_cli/"
+   "description": "LANforge JSON GET endpoint /gui-cli"
   },
   "layer4": {
    "url": "/layer4",
-   "url_variants": [],
+   "url_variants": [
+    "/layer4/",
+    "/layer4/$endp_id"
+   ],
    "columns": [
     "%21conn",
     "acc.+denied",
@@ -494,11 +574,16 @@
     "video-quality",
     "write        # hidden columns:"
    ],
-   "description": "LANforge JSON GET endpoint /layer4/"
+   "description": "LANforge JSON GET endpoint /layer4"
   },
   "mlo": {
    "url": "/mlo",
-   "url_variants": [],
+   "url_variants": [
+    "/mlo/",
+    "/mlo/$shelf_id",
+    "/mlo/$shelf_id/$resource_id",
+    "/mlo/$shelf_id/$resource_id/$port_id"
+   ],
    "columns": [
     "active",
     "activity",
@@ -538,17 +623,30 @@
     "tx-rate",
     "wifi+retries        # hidden columns:"
    ],
-   "description": "LANforge JSON GET endpoint /mlo/"
+   "description": "LANforge JSON GET endpoint /mlo"
   },
   "newsession": {
    "url": "/newsession",
-   "url_variants": [],
+   "url_variants": [
+    "/newsession"
+   ],
    "columns": [],
-   "description": "LANforge JSON GET endpoint /newsession/"
+   "description": "LANforge JSON GET endpoint /newsession"
   },
   "port": {
    "url": "/port",
-   "url_variants": [],
+   "url_variants": [
+    "/port/",
+    "/port/$shelf_id",
+    "/port/$shelf_id/$resource_id",
+    "/port/$shelf_id/$resource_id/$port_id",
+    "/portprobe/",
+    "/portprobe/$shelf_id/$resource_id/$port_id",
+    "/ports/",
+    "/ports/$shelf_id",
+    "/ports/$shelf_id/$resource_id",
+    "/ports/$shelf_id/$resource_id/$port_id"
+   ],
    "columns": [
     "4way+time+%28us%29",
     "activity",
@@ -643,20 +741,28 @@
     "wifi+retries        # hidden columns:",
     "wifi_cfg"
    ],
-   "description": "LANforge JSON GET endpoint /port/"
+   "description": "LANforge JSON GET endpoint /port"
   },
   "probe": {
    "url": "/probe",
-   "url_variants": [],
+   "url_variants": [
+    "/probe/",
+    "/probe/$shelf_id/$resource_id/$port_id"
+   ],
    "columns": [
     "entity+id",
     "probe+results"
    ],
-   "description": "LANforge JSON GET endpoint /probe/"
+   "description": "LANforge JSON GET endpoint /probe"
   },
   "profile": {
    "url": "/profile",
-   "url_variants": [],
+   "url_variants": [
+    "/profile/",
+    "/profile/$name",
+    "/profiles/",
+    "/profiles/$name"
+   ],
    "columns": [
     "antennas",
     "bandwidth",
@@ -672,11 +778,14 @@
     "ssid",
     "type"
    ],
-   "description": "LANforge JSON GET endpoint /profile/"
+   "description": "LANforge JSON GET endpoint /profile"
   },
   "profiles": {
    "url": "/profiles",
-   "url_variants": [],
+   "url_variants": [
+    "/profiles/",
+    "/profiles/$name"
+   ],
    "columns": [
     "antennas",
     "bandwidth",
@@ -692,17 +801,23 @@
     "ssid",
     "type"
    ],
-   "description": "LANforge JSON GET endpoint /profiles/"
+   "description": "LANforge JSON GET endpoint /profiles"
   },
   "quit": {
    "url": "/quit",
-   "url_variants": [],
+   "url_variants": [
+    "/quit"
+   ],
    "columns": [],
-   "description": "LANforge JSON GET endpoint /quit/"
+   "description": "LANforge JSON GET endpoint /quit"
   },
   "radiostatus": {
    "url": "/radiostatus",
-   "url_variants": [],
+   "url_variants": [
+    "/radiostatus/",
+    "/radiostatus/$eid",
+    "/radiostatus/$shelf_id/$resource_id/$port_id"
+   ],
    "columns": [
     "_links",
     "antenna",
@@ -731,11 +846,15 @@
     "vaps_up",
     "verbose+debug"
    ],
-   "description": "LANforge JSON GET endpoint /radiostatus/"
+   "description": "LANforge JSON GET endpoint /radiostatus"
   },
   "resource": {
    "url": "/resource",
-   "url_variants": [],
+   "url_variants": [
+    "/resource/",
+    "/resource/$shelf_id",
+    "/resource/$shelf_id/$resource_id"
+   ],
    "columns": [
     "app-id",
     "bps-rx-3s",
@@ -774,11 +893,16 @@
     "tx+bytes",
     "user        # hidden columns:"
    ],
-   "description": "LANforge JSON GET endpoint /resource/"
+   "description": "LANforge JSON GET endpoint /resource"
   },
   "rfgen": {
    "url": "/rfgen",
-   "url_variants": [],
+   "url_variants": [
+    "/rfgen/",
+    "/rfgen/$shelf_id",
+    "/rfgen/$shelf_id/$resource_id/",
+    "/rfgen/$shelf_id/$resource_id/$port_id"
+   ],
    "columns": [
     "bb-gain",
     "burst+offset",
@@ -816,17 +940,30 @@
     "trigger+dbm",
     "uut+channel+bandwidth"
    ],
-   "description": "LANforge JSON GET endpoint /rfgen/"
+   "description": "LANforge JSON GET endpoint /rfgen"
   },
   "scan": {
    "url": "/scan",
-   "url_variants": [],
+   "url_variants": [
+    "/scan-results/",
+    "/scan-results/$shelf_id/$resource_id/$port_id",
+    "/scan-results/$shelf_id/$resource_id/$port_id/$bssid",
+    "/scan/",
+    "/scan/$shelf_id/$resource_id/$port_id",
+    "/scan/$shelf_id/$resource_id/$port_id/$bssid",
+    "/scanresults/",
+    "/scanresults/$shelf_id/$resource_id/$port_id",
+    "/scanresults/$shelf_id/$resource_id/$port_id/$bssid"
+   ],
    "columns": [],
-   "description": "LANforge JSON GET endpoint /scan/"
+   "description": "LANforge JSON GET endpoint /scan"
   },
   "stations": {
    "url": "/stations",
-   "url_variants": [],
+   "url_variants": [
+    "/stations/",
+    "/stations/$mac"
+   ],
    "columns": [
     "ap",
     "auth-for",
@@ -849,17 +986,30 @@
     "tx+retries",
     "tx-failed"
    ],
-   "description": "LANforge JSON GET endpoint /stations/"
+   "description": "LANforge JSON GET endpoint /stations"
   },
   "status_msg": {
-   "url": "/status_msg",
-   "url_variants": [],
+   "url": "/status-msg",
+   "url_variants": [
+    "/status-msg/",
+    "/status-msg/$session",
+    "/status-msg/$session/$id",
+    "/status-msg/$session/$id/ws-msg,...",
+    "/status-msg/$session/all",
+    "/status-msg/$session/this",
+    "/status-msg/sessions"
+   ],
    "columns": [],
-   "description": "LANforge JSON GET endpoint /status_msg/"
+   "description": "LANforge JSON GET endpoint /status-msg"
   },
   "test_group": {
-   "url": "/test_group",
-   "url_variants": [],
+   "url": "/test-group",
+   "url_variants": [
+    "/test-group/",
+    "/test-group/$id",
+    "/test-groups/",
+    "/test-groups/$id"
+   ],
    "columns": [
     "cross+connects",
     "entity+id",
@@ -867,22 +1017,32 @@
     "run",
     "script"
    ],
-   "description": "LANforge JSON GET endpoint /test_group/"
+   "description": "LANforge JSON GET endpoint /test-group"
   },
   "text": {
    "url": "/text",
-   "url_variants": [],
+   "url_variants": [
+    "/text/",
+    "/text/$group",
+    "/text/$group/$class",
+    "/text/$group/$class/$key"
+   ],
    "columns": [
     "eid",
     "name",
     "text",
     "type"
    ],
-   "description": "LANforge JSON GET endpoint /text/"
+   "description": "LANforge JSON GET endpoint /text"
   },
   "voip": {
    "url": "/voip",
-   "url_variants": [],
+   "url_variants": [
+    "/voip-endp/",
+    "/voip-endp/$endp_id",
+    "/voip/",
+    "/voip/$cx_id"
+   ],
    "columns": [
     "bps+rx+a",
     "bps+rx+b",
@@ -902,11 +1062,14 @@
     "state",
     "type"
    ],
-   "description": "LANforge JSON GET endpoint /voip/"
+   "description": "LANforge JSON GET endpoint /voip"
   },
   "voip_endp": {
-   "url": "/voip_endp",
-   "url_variants": [],
+   "url": "/voip-endp",
+   "url_variants": [
+    "/voip-endp/",
+    "/voip-endp/$endp_id"
+   ],
    "columns": [
     "attenuation",
     "audio+band",
@@ -958,11 +1121,19 @@
     "tx+pkts",
     "vad+pkts"
    ],
-   "description": "LANforge JSON GET endpoint /voip_endp/"
+   "description": "LANforge JSON GET endpoint /voip-endp"
   },
   "vr": {
    "url": "/vr",
-   "url_variants": [],
+   "url_variants": [
+    "/vr-cx/",
+    "/vr-cx/$shelf_id/$resource_id/$port_id",
+    "/vr/",
+    "/vr/$shelf_id/$resource_id",
+    "/vr/$shelf_id/$resource_id/$port_id",
+    "/vrcx/",
+    "/vrcx/$shelf_id/$resource_id/$port_id"
+   ],
    "columns": [
     "active+ipv6+router",
     "bgp+4byte+as",
@@ -999,11 +1170,14 @@
     "xorp+sha",
     "y"
    ],
-   "description": "LANforge JSON GET endpoint /vr/"
+   "description": "LANforge JSON GET endpoint /vr"
   },
   "vrcx": {
    "url": "/vrcx",
-   "url_variants": [],
+   "url_variants": [
+    "/vrcx/",
+    "/vrcx/$shelf_id/$resource_id/$port_id"
+   ],
    "columns": [
     "entity+id",
     "height",
@@ -1025,21 +1199,41 @@
     "x",
     "y"
    ],
-   "description": "LANforge JSON GET endpoint /vrcx/"
+   "description": "LANforge JSON GET endpoint /vrcx"
   },
   "wifi_msg": {
-   "url": "/wifi_msg",
-   "url_variants": [],
+   "url": "/wifi-msgs",
+   "url_variants": [
+    "/wifi-msgs/$shelf_id/$resource_id/before=time/$time-stamp",
+    "/wifi-msgs/$shelf_id/$resource_id/between=time/$start_time/$end_time",
+    "/wifi-msgs/$shelf_id/$resource_id/first/$wifi-msg_count",
+    "/wifi-msgs/$shelf_id/$resource_id/first=time/$time-period",
+    "/wifi-msgs/$shelf_id/$resource_id/last/$wifi_msg_count",
+    "/wifi-msgs/$shelf_id/$resource_id/last=time/$time-period",
+    "/wifi-msgs/$shelf_id/$resource_id/since=time/$time-stamp",
+    "/wifi-msgs/before=time/$time-stamp",
+    "/wifi-msgs/between=time/$start_time/$end_time",
+    "/wifi-msgs/first/$wifi-msg_count",
+    "/wifi-msgs/first=time/$time-period",
+    "/wifi-msgs/last/$wifi_msg_count",
+    "/wifi-msgs/last=time/$time-period",
+    "/wifi-msgs/since=time/$time-stamp"
+   ],
    "columns": [
     "resource",
     "text",
     "time-stamp"
    ],
-   "description": "LANforge JSON GET endpoint /wifi_msg/"
+   "description": "LANforge JSON GET endpoint /wifi-msgs"
   },
   "wifi_stats": {
-   "url": "/wifi_stats",
-   "url_variants": [],
+   "url": "/wifi-stats",
+   "url_variants": [
+    "/wifi-stats/",
+    "/wifi-stats/$shelf_id",
+    "/wifi-stats/$shelf_id/$resource_id",
+    "/wifi-stats/$shelf_id/$resource_id/$port_id"
+   ],
    "columns": [
     "# hidden columns:",
     "alias",
@@ -1201,11 +1395,23 @@
     "v_tx_nss_3",
     "v_tx_nss_4"
    ],
-   "description": "LANforge JSON GET endpoint /wifi_stats/"
+   "description": "LANforge JSON GET endpoint /wifi-stats"
   },
   "wl": {
    "url": "/wl",
-   "url_variants": [],
+   "url_variants": [
+    "/wl-endp/",
+    "/wl-endp/$wl_ep_id",
+    "/wl-ep/",
+    "/wl-ep/$wl_ep_id",
+    "/wl/",
+    "/wl/$wl_id",
+    "/wl_endp/",
+    "/wl_endp/$wl_ep_id",
+    "/wl_ep/",
+    "/wl_ep/$wl_ep_id",
+    "/wlendp/$wl_ep_id"
+   ],
    "columns": [
     "bps+rx+a",
     "bps+rx+b",
@@ -1219,11 +1425,14 @@
     "rpt+timer",
     "state"
    ],
-   "description": "LANforge JSON GET endpoint /wl/"
+   "description": "LANforge JSON GET endpoint /wl"
   },
   "wl_endp": {
-   "url": "/wl_endp",
-   "url_variants": [],
+   "url": "/wl-endp",
+   "url_variants": [
+    "/wl-endp/",
+    "/wl-endp/$wl_ep_id"
+   ],
    "columns": [
     "buffer",
     "corrupt+1",
@@ -1263,13 +1472,16 @@
     "tx-failed",
     "wps"
    ],
-   "description": "LANforge JSON GET endpoint /wl_endp/"
+   "description": "LANforge JSON GET endpoint /wl-endp"
   },
   "ws_msg": {
-   "url": "/ws_msg",
-   "url_variants": [],
+   "url": "/ws-msg",
+   "url_variants": [
+    "/ws-msg/",
+    "/ws-msg/$sessionid"
+   ],
    "columns": [],
-   "description": "LANforge JSON GET endpoint /ws_msg/"
+   "description": "LANforge JSON GET endpoint /ws-msg"
   }
  }
 }
