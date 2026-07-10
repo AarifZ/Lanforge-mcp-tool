@@ -22,6 +22,10 @@ logger = logging.getLogger(__name__)
 
 _SLUG_RE = re.compile(r"[^a-z0-9]+")
 
+#: A number followed only by a unit, e.g. "-31 dBm", "80 MHz", "3.2 Gbps", "97%".
+#: Deliberately strict so EID-like strings ("1.1.eth0") never match.
+_NUM_WITH_UNIT_RE = re.compile(r"^\s*(-?\d+(?:\.\d+)?)\s*[a-zA-Z%/]+\s*$")
+
 #: Row fields that identify a row rather than measure something.
 _ID_FIELDS = ("eid", "name", "alias", "port", "entity id")
 
@@ -36,10 +40,13 @@ def _to_float(value: Any) -> float | None:
     if isinstance(value, (int, float)):
         return float(value)
     if isinstance(value, str):
+        text = value.replace(",", "")
         try:
-            return float(value.replace(",", ""))
+            return float(text)
         except ValueError:
-            return None
+            # LANforge tables often carry units: "-31 dBm", "80 MHz", "97%".
+            m = _NUM_WITH_UNIT_RE.match(text)
+            return float(m.group(1)) if m else None
     return None
 
 

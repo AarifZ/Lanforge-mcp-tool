@@ -47,9 +47,15 @@ class MockState:
             "down": False,
             "ap": "",
             "signal": "",
+            "status": "",
             "channel": "",
             "mode": "",
         }
+
+    #: Columns the bulk /port view returns when no ?fields= is given. Mirrors
+    #: live LANforge 5.5.2.1, where dynamic WiFi fields (ip/ap/signal/...) are
+    #: omitted from the default table — the bug source for station diagnostics.
+    DEFAULT_PORT_COLUMNS = ("alias", "port type", "phantom", "down")
 
     def add_event(self, text: str, name: str = "mock") -> None:
         self.events.append({"time": "2026-07-08 12:00:00", "event description": text, "name": name})
@@ -69,7 +75,6 @@ def create_mock_app(state: MockState | None = None) -> tuple[Starlette, MockStat
     async def get_port(request: Request) -> JSONResponse:
         st.last_fields = request.query_params.get("fields")
         rest = request.path_params.get("rest", "")
-        rows = []
         if rest:
             parts = rest.strip("/").split("/")
             if len(parts) >= 3:
@@ -80,8 +85,25 @@ def create_mock_app(state: MockState | None = None) -> tuple[Starlette, MockStat
                 selected = st.ports
         else:
             selected = st.ports
+
+        if st.last_fields:
+            # Real GUIs reject unknown field names (observed: 'rssi' -> error).
+            requested = [f.strip() for f in st.last_fields.split(",") if f.strip()]
+            sample = next(iter(st.ports.values()))
+            unknown = [f for f in requested if f not in sample]
+            if unknown:
+                return JSONResponse({"errors": [f"Unknown fields: {unknown}"]}, status_code=400)
+            shape = dict.fromkeys(requested)
+        elif not rest:
+            # Bulk /port without ?fields= omits dynamic WiFi columns (5.5.2.1).
+            shape = dict.fromkeys(MockState.DEFAULT_PORT_COLUMNS)
+        else:
+            shape = None  # explicit-EID lookups return the full row
+
+        rows = []
         for eid, port in selected.items():
-            rows.append({eid: port})
+            row = port if shape is None else {k: port[k] for k in shape if k in port}
+            rows.append({eid: row})
         if len(rows) == 1:
             return JSONResponse({"interface": next(iter(rows[0].values())), "uri": "port"})
         return JSONResponse({"interfaces": rows, "uri": "port"})

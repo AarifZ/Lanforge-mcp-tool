@@ -46,11 +46,17 @@ async def test_query_with_eids(ctx):
 async def test_query_decodes_lanforge_encoded_columns(ctx, state):
     # The catalog documents columns pre-encoded ("port+type", "%28us%29"); the
     # wire must carry them decoded exactly once, however the caller wrote them.
-    await ctx.api().query("port", columns=["alias", "port+type", "4way+time+%28us%29"])
-    assert state.last_fields == "alias,port type,4way time (us)"
+    await ctx.api().query("port", columns=["alias", "port+type"])
+    assert state.last_fields == "alias,port type"
 
     await ctx.api().query("port", columns=["port type"])
     assert state.last_fields == "port type"
+
+    # %-encoded catalog forms decode too (mock rejects the unknown column, but
+    # the request that reached the wire must already be decoded).
+    with pytest.raises(Exception):  # noqa: B017 — only the wire format matters here
+        await ctx.api().query("port", columns=["4way+time+%28us%29"])
+    assert state.last_fields == "4way time (us)"
 
 
 async def test_command_creates_station(ctx, state):
@@ -111,6 +117,27 @@ async def test_raw_command(ctx, state):
     res = await ctx.api().raw("set_cx_state all all STOPPED")
     assert res.ok
     assert state.commands_received[-1]["cmd"] == "raw"
+
+
+async def test_bulk_port_omits_dynamic_fields_like_real_gui(ctx):
+    # Live LANforge 5.5.2.1: bulk /port without ?fields= has no ip/ap/signal.
+    result = await ctx.api().query("port")
+    assert result["rows"] and all("ip" not in row for row in result["rows"])
+
+
+async def test_unknown_field_rejected_like_real_gui(ctx):
+    # Live GUIs reject unknown field names (observed with 'rssi').
+    with pytest.raises(Exception, match=r"(?i)unknown field|400"):
+        await ctx.api().query("port", columns=["alias", "rssi"])
+
+
+async def test_stations_404_gets_actionable_hint(ctx):
+    from lanforge_mcp.errors import QueryError
+
+    with pytest.raises(QueryError) as exc_info:
+        await ctx.api().query("stations")
+    assert "port" in exc_info.value.hint
+    assert "station_status" in exc_info.value.hint
 
 
 async def test_help_text_stripped(ctx):

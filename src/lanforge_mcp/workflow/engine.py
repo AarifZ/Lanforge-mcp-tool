@@ -356,10 +356,15 @@ class WorkflowEngine:
             value=substitute(step.until.value, context),
             match=step.until.match,
         )
+        # The condition field must actually be in the response: LANforge's bulk
+        # table views omit some dynamic columns unless explicitly requested.
+        columns = list(step.columns) if step.columns else ["alias", cond.field]
+        if cond.field not in columns:
+            columns.append(cond.field)
         while True:
             q = await self.api.query(
                 substitute(step.endpoint, context),
-                columns=step.columns or None,
+                columns=columns,
                 eids=substitute(step.eids, context) or None,
             )
             polls += 1

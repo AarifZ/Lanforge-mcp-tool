@@ -15,6 +15,20 @@ SAMPLES = [
 ]
 
 
+def test_to_float_accepts_lanforge_units():
+    from lanforge_mcp.reports.engine import _to_float
+
+    assert _to_float("-31 dBm") == -31.0
+    assert _to_float("80 MHz") == 80.0
+    assert _to_float("97%") == 97.0
+    assert _to_float("3.25 Gbps") == 3.25
+    assert _to_float("1000") == 1000.0
+    # Identifier-like strings must NOT parse (they'd pollute report stats).
+    assert _to_float("1.1.eth0") is None
+    assert _to_float("802.11an-BE 80 2x2") is None
+    assert _to_float(True) is None
+
+
 def test_summarize_samples():
     stats = summarize_samples(SAMPLES)
     s = stats["cx-1"]["bps rx a"]

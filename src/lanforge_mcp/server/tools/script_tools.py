@@ -16,6 +16,7 @@ def register(mcp: FastMCP, ctx: AppContext) -> None:
     async def list_scripts(
         search: Annotated[str, Field(description="Substring to match against script names (e.g. 'wifi_capacity', 'roam', 'dataplane', 'mesh', 'ftp')")] = "",
         refresh: Annotated[bool, Field(description="Re-scan the scripts directory (picks up newly added scripts)")] = False,
+        limit: Annotated[int, Field(description="Maximum results", ge=1, le=200)] = 40,
         system_id: Annotated[str | None, Field(description="Which system (omit when only one is configured)")] = None,
     ) -> dict:
         """Discover the 115+ automation scripts from lanforge-scripts (py-scripts).
@@ -29,7 +30,7 @@ def register(mcp: FastMCP, ctx: AppContext) -> None:
         registry = ctx.script_registry(system_id)
         if refresh:
             await registry.discover(refresh=True)
-        hits = await registry.search(search)
+        hits = await registry.search(search, limit=limit)
         return {"ok": True, "scripts": hits, "count": len(hits)}
 
     @mcp.tool(tags={"scripts", "discovery"})

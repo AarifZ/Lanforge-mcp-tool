@@ -184,12 +184,14 @@ directions) and connections with packet drops above 1%.
 Discover the LANforge JSON GET endpoints usable with the 'query' tool.
 
 Endpoints are data tables: port (all interfaces incl. WiFi stations),
-stations, cx (Layer-3 connections), endp, layer4, voip, events, alerts,
+cx (Layer-3 connections), endp, layer4, voip, events, alerts,
 radiostatus, resource, wifi_stats, attenuator, chamber, dut, ...
+Entries may carry a 'note' about version-specific quirks.
 
 | Parameter | Type | Required | Description |
 |---|---|---|---|
 | search | string | no | Substring to match against endpoint names and column names; empty lists everything |
+| limit | integer | no | Maximum results |
 
 ### `list_scripts`
 
@@ -205,6 +207,7 @@ server change.
 |---|---|---|---|
 | search | string | no | Substring to match against script names (e.g. 'wifi_capacity', 'roam', 'dataplane', 'mesh', 'ftp') |
 | refresh | boolean | no | Re-scan the scripts directory (picks up newly added scripts) |
+| limit | integer | no | Maximum results |
 | system_id | string or null | no | Which system (omit when only one is configured) |
 
 ### `list_workflow_templates`
@@ -242,11 +245,12 @@ Show a template's full step list — copy and modify it for custom workflows.
 Summarize the LANforge testbed: resources, radios, ports, stations, traffic.
 
 Ideal first call after connecting — it tells the AI what hardware is
-available to build tests with.
+available to build tests with. summary=true returns just the counts.
 
 | Parameter | Type | Required | Description |
 |---|---|---|---|
 | system_id | string or null | no | Which system (omit when only one is configured) |
+| summary | boolean | no | Return counts only (no per-item lists) — smaller output |
 
 ### `query`
 

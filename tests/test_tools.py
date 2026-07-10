@@ -130,6 +130,50 @@ async def test_monitor_and_report(client, tmp_path):
         assert rep["ok"] and rep["files"]
 
 
+async def test_station_diagnostics_without_eids_sees_dynamic_fields(client, state):
+    # Regression for the live-hardware bug: an associated station must be
+    # classified healthy even though the bulk /port view omits ip/ap/signal —
+    # diagnostics must request those columns explicitly.
+    from .mock_lanforge import MockState
+
+    port = MockState._port("sta0000", "WIFI-STA", ip="192.168.1.191")
+    port["ap"] = "EE:CA:AC:39:B1:39"
+    port["signal"] = "-31 dBm"
+    port["channel"] = "100"
+    state.ports["1.2.sta0000"] = port
+    async with client:
+        data = result_json(await client.call_tool("station_status", {}))
+    assert data["ok"] is True
+    assert data["healthy"] == 1 and data["failed"] == 0, data
+    healthy = data["healthy_stations"][0]
+    assert healthy["ip"] == "192.168.1.191"
+    assert healthy["ap"] == "EE:CA:AC:39:B1:39"
+
+
+async def test_remove_ports_safety_error_names_the_tool(client, ctx):
+    ctx.safety.set_modes(read_only=True)
+    try:
+        async with client:
+            data = result_json(
+                await client.call_tool("remove_ports", {"eids": ["1.1.sta0000"], "confirm": True})
+            )
+    finally:
+        ctx.safety.set_modes(read_only=False)
+    assert data["ok"] is False
+    assert "remove_ports blocked for 1.1.sta0000" in data["error"]["message"]
+    assert data["error"]["details"]["tool"] == "remove_ports"
+
+
+async def test_convenience_params(client):
+    async with client:
+        endpoints = result_json(await client.call_tool("list_endpoints", {"limit": 5}))
+        assert endpoints["count"] <= 5
+        stations_hit = result_json(await client.call_tool("list_endpoints", {"search": "stations"}))
+        assert any("note" in h for h in stations_hit["endpoints"])
+        inv = result_json(await client.call_tool("inventory", {"summary": True}))
+        assert inv["ok"] and "stations" not in inv and "port_count" in inv
+
+
 async def test_events_and_analyze(client):
     async with client:
         ev = result_json(await client.call_tool("events", {"last": 10}))

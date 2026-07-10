@@ -9,7 +9,7 @@ from typing import Annotated, Literal
 from fastmcp import FastMCP
 from pydantic import Field
 
-from ...errors import CommandError
+from ...errors import CommandError, SafetyError
 from ..context import AppContext, tool_errors
 
 #: add_sta security flags (values from py-json/LANforge/add_sta.py).
@@ -126,7 +126,12 @@ def register(mcp: FastMCP, ctx: AppContext) -> None:
         pending = set(names)
         got_ip: dict[str, str] = {}
         while pending and time.monotonic() < deadline:
-            q = await api.query("port", eids=[str(shelf), str(resource), ",".join(pending)])
+            # Explicit columns: the bulk /port view may omit 'ip' on some builds.
+            q = await api.query(
+                "port",
+                eids=[str(shelf), str(resource), ",".join(pending)],
+                columns=["alias", "ip", "down", "phantom"],
+            )
             for row in q["rows"]:
                 alias = str(row.get("alias") or "")
                 ip = str(row.get("ip") or "0.0.0.0")
@@ -198,11 +203,20 @@ def register(mcp: FastMCP, ctx: AppContext) -> None:
         results = []
         for eid in eids:
             shelf, resource, port = _eid_parts(eid)
-            res = await api.command(
-                "rm_vlan",
-                {"shelf": shelf, "resource": resource, "port": port},
-                confirm=confirm,
-                system_id=sid,
-            )
+            try:
+                res = await api.command(
+                    "rm_vlan",
+                    {"shelf": shelf, "resource": resource, "port": port},
+                    confirm=confirm,
+                    system_id=sid,
+                )
+            except SafetyError as exc:
+                # Surface the high-level operation, not just the internal CLI
+                # command ('rm_vlan' is LANforge's remove-virtual-port command).
+                raise SafetyError(
+                    f"remove_ports blocked for {eid}: {exc.message}",
+                    details={"tool": "remove_ports", "eid": eid, **exc.details},
+                    hint=exc.hint,
+                ) from exc
             results.append({"eid": eid, "ok": res.ok, "errors": res.errors})
         return {"ok": all(r["ok"] for r in results), "results": results}

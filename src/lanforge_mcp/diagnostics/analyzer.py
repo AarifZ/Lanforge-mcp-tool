@@ -9,7 +9,7 @@ how two throughput samples compare.
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, ClassVar
 
 from ..api.json_api import JsonApi
 from ..reports.engine import _to_float, summarize_samples
@@ -65,9 +65,19 @@ class Diagnostics:
         out["issues"] = issues
         return out
 
+    #: /port columns needed for station health. The bulk /port view on some
+    #: LANforge builds (seen on 5.5.2.1) omits dynamic WiFi fields entirely,
+    #: which made associated stations look like 0.0.0.0/not-associated — so
+    #: always request them explicitly. Every name is catalog-valid; the GUI
+    #: rejects unknown field names (e.g. 'rssi' is not a real column).
+    STATION_COLUMNS: ClassVar[list[str]] = [
+        "alias", "ip", "ap", "channel", "mode", "status",
+        "signal", "port type", "phantom", "down",
+    ]
+
     async def diagnose_stations(self, eids: list[str] | None = None) -> dict[str, Any]:
         """Per-station health with a human-readable reason for each problem."""
-        q = await self.api.query("port", eids=eids)
+        q = await self.api.query("port", eids=eids, columns=self.STATION_COLUMNS)
         stations = [
             r for r in q["rows"]
             if str(_f(r, "port type", "port_type", "type") or "").lower() in ("wifi-sta", "sta", "station")

@@ -18,7 +18,7 @@ from typing import Any
 from urllib.parse import unquote_plus
 
 from ..connection.http_client import LFHttpClient
-from ..errors import CommandError, translate_lanforge_message
+from ..errors import CommandError, QueryError, translate_lanforge_message
 from ..models import CommandResult
 from ..safety import SafetyGuard
 from .catalog import Catalog
@@ -110,7 +110,21 @@ class JsonApi:
             # "4way+time+%28us%29"). Decode them here so httpx encodes exactly once,
             # whether the caller passed "port type" or the encoded catalog form.
             params["fields"] = ",".join(unquote_plus(c) for c in columns)
-        payload = await self.http.get_json(url, params=params or None)
+        try:
+            payload = await self.http.get_json(url, params=params or None)
+        except QueryError as exc:
+            table = url.strip("/").split("/")[0]
+            if table == "stations" and "404" in exc.message:
+                # Known field quirk: some LANforge builds (e.g. 5.5.2.1) do not
+                # serve /stations even though the API client documents it.
+                raise QueryError(
+                    exc.message,
+                    details=exc.details,
+                    hint="This LANforge build does not serve /stations. Query 'port' with "
+                    "columns like ['alias','ip','ap','signal','port type'] instead — WiFi "
+                    "stations are port rows — or use the station_status tool.",
+                ) from exc
+            raise
         out: dict[str, Any] = {"endpoint": url, "raw": payload}
         if normalize:
             rows = normalize_rows(payload)

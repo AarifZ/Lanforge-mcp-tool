@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 from functools import lru_cache
 from importlib import resources
-from typing import Any
+from typing import Any, ClassVar
 
 
 def _load(name: str) -> dict[str, Any]:
@@ -89,6 +89,12 @@ class Catalog:
     def endpoint(self, name: str) -> dict[str, Any] | None:
         return self._endpoints.get(name.strip("/").split("/")[0])
 
+    #: Endpoints documented by the API client but missing on some GUI builds,
+    #: with the working alternative (verified live on LANforge 5.5.2.1).
+    ENDPOINT_NOTES: ClassVar[dict[str, str]] = {
+        "stations": "404s on some LANforge builds; query 'port' instead (WiFi stations are port rows).",
+    }
+
     def search_endpoints(self, search: str = "", limit: int = 60) -> list[dict[str, Any]]:
         needle = search.strip().lower()
         hits = []
@@ -98,13 +104,14 @@ class Catalog:
                 needle in c.lower() for c in info.get("columns", [])
             ):
                 continue
-            hits.append(
-                {
-                    "endpoint": name,
-                    "url": info.get("url", f"/{name}"),
-                    "columns": info.get("columns", []),
-                }
-            )
+            hit = {
+                "endpoint": name,
+                "url": info.get("url", f"/{name}"),
+                "columns": info.get("columns", []),
+            }
+            if name in self.ENDPOINT_NOTES:
+                hit["note"] = self.ENDPOINT_NOTES[name]
+            hits.append(hit)
             if len(hits) >= limit:
                 break
         return hits
