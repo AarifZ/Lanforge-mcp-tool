@@ -32,15 +32,33 @@ def test_normalize_dotted_section_becomes_eid():
 async def test_query_ports(ctx):
     api = ctx.api()
     result = await api.query("port")
-    assert result["row_count"] == 3
+    assert result["row_count"] == 4
     aliases = {r["alias"] for r in result["rows"]}
-    assert {"eth0", "eth1", "wiphy0"} <= aliases
+    assert {"eth0", "eth1", "wiphy0", "eth0#1"} <= aliases
 
 
 async def test_query_with_eids(ctx):
     result = await ctx.api().query("port", eids=["1", "1", "eth0"])
     assert result["row_count"] == 1
     assert result["rows"][0]["alias"] == "eth0"
+
+
+def test_eids_to_path_encodes_special_chars():
+    from lanforge_mcp.api.json_api import _eids_to_path
+
+    # '#' is a URL fragment separator; a macvlan EID must survive as %23.
+    assert _eids_to_path(["1.1.eth0#1"]) == "1/1/eth0%231"
+    assert _eids_to_path(["1", "1", "eth0#1"]) == "1/1/eth0%231"
+    # Plain names are unchanged; comma list separator is preserved.
+    assert _eids_to_path(["1.1.sta0", "1.1.sta1"]) == "1/1/sta0,sta1"
+
+
+async def test_query_macvlan_eid_with_hash(ctx):
+    # Regression: '/port/1/1/eth0#1' must not truncate at '#' to eth0.
+    result = await ctx.api().query("port", eids=["1.1.eth0#1"], columns=["alias", "ip"])
+    assert result["row_count"] == 1
+    assert result["rows"][0]["alias"] == "eth0#1"
+    assert result["rows"][0]["ip"] == "192.168.1.55"
 
 
 async def test_query_decodes_lanforge_encoded_columns(ctx, state):

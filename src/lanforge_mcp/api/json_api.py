@@ -15,7 +15,7 @@ from __future__ import annotations
 import logging
 import re
 from typing import Any
-from urllib.parse import unquote_plus
+from urllib.parse import quote, unquote_plus
 
 from ..connection.http_client import LFHttpClient
 from ..errors import CommandError, QueryError, translate_lanforge_message
@@ -261,17 +261,29 @@ def _as_list(value: Any) -> list[Any]:
     return value if isinstance(value, list) else [value]
 
 
+def _enc(segment: str) -> str:
+    """URL-encode a path segment, keeping only ',' (LANforge's list separator).
+
+    Port names for virtual interfaces contain characters that are special in
+    URLs: macvlans use '#' (eth0#1 — a fragment separator!), 802.1q VLANs use
+    '.' inside the port name. Without encoding, '/port/1/1/eth0#1' is truncated
+    at '#' and silently returns eth0 instead.
+    """
+    return quote(segment, safe=",")
+
+
 def _eids_to_path(eids: list[str]) -> str:
-    """Map EIDs onto a LANforge URL path.
+    """Map EIDs onto a LANforge URL path (URL-encoded).
 
     ``["1", "1", "eth0"]``                  -> ``1/1/eth0`` (path components)
     ``["1.1.sta0000", "1.1.sta0001"]``      -> ``1/1/sta0000,sta0001``
     ``["sta0000"]``                          -> ``1/1/sta0000``
+    ``["1.1.eth0#1"]``                       -> ``1/1/eth0%231`` (macvlan)
     LANforge selects rows per shelf/resource, so all EIDs must share one; the
     first shelf/resource group wins.
     """
     if len(eids) == 3 and all("." not in e for e in eids):
-        return "/".join(str(e) for e in eids)
+        return "/".join(_enc(str(e)) for e in eids)
     groups: dict[tuple[str, str], list[str]] = {}
     for eid in eids:
         seg = str(eid).split(".")
@@ -283,4 +295,4 @@ def _eids_to_path(eids: list[str]) -> str:
             key, port = ("1", "1"), seg[0]
         groups.setdefault(key, []).append(port)
     (shelf, resource), ports = next(iter(groups.items()))
-    return f"{shelf}/{resource}/{','.join(ports)}"
+    return f"{shelf}/{resource}/{','.join(_enc(p) for p in ports)}"

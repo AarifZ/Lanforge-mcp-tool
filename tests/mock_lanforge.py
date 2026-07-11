@@ -28,6 +28,9 @@ class MockState:
             "1.1.eth0": self._port("eth0", "Ethernet", ip="192.168.1.10"),
             "1.1.eth1": self._port("eth1", "Ethernet", ip="10.0.0.1"),
             "1.1.wiphy0": self._port("wiphy0", "Radio"),
+            # A macvlan whose name contains '#' (URL fragment char) — regression
+            # guard for EID path encoding.
+            "1.1.eth0#1": self._port("eth0#1", "MAC-VLAN", ip="192.168.1.55"),
         }
         self.endps: dict[str, dict[str, Any]] = {}
         self.cxs: dict[str, dict[str, Any]] = {}

@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.1.4 — 2026-07-11
+
+Found live while setting up a macvlan-upstream WiFi capacity test.
+
+Fixed:
+- EID path segments are now URL-encoded. Virtual-port names contain characters
+  that are special in URLs — macvlans use '#' (a fragment separator!), so
+  `query(eids=["1.1.eth0#1"])` requested `/port/1/1/eth0#1`, which the client
+  truncated at '#' and silently returned the parent `eth0` instead. Macvlan,
+  QVLAN and similar EIDs now resolve correctly.
+
+Verified live (LANforge 5.5.2): macvlan created on eth0 via add_mvlan +
+DHCP set_port obtained a lease (192.168.217.175); readable back through the
+fixed EID path.
+
 ## 0.1.3 — 2026-07-11
 
 Verified end-to-end against live hardware (LANforge 5.5.2, CT523c): station

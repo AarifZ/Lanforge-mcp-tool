@@ -42,7 +42,7 @@ async def test_inventory_tool(client):
     async with client:
         data = result_json(await client.call_tool("inventory", {}))
     assert data["ok"] is True
-    assert data["port_count"] == 3
+    assert data["port_count"] == 4
     assert any(r["eid"] == "1.1.wiphy0" for r in data["radios"])
 
 
