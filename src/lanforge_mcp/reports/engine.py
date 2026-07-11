@@ -96,7 +96,7 @@ def _ai_summary_lines(stats: dict[str, Any]) -> list[str]:
         }
         for metric, s in list(picked.items())[:6]:
             lines.append(
-                f"{entity} · {metric}: avg {s['avg']:g}, min {s['min']:g}, max {s['max']:g} (n={s['n']})"
+                f"{entity} - {metric}: avg {s['avg']:g}, min {s['min']:g}, max {s['max']:g} (n={s['n']})"
             )
     if not lines:
         lines.append("No time-varying numeric metrics detected in the collected data.")

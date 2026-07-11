@@ -11,7 +11,7 @@ from __future__ import annotations
 import logging
 from typing import Any, ClassVar
 
-from ..api.json_api import JsonApi, data_rows
+from ..api.json_api import CX_COLUMNS, JsonApi, data_rows
 from ..reports.engine import _to_float, summarize_samples
 
 logger = logging.getLogger(__name__)
@@ -128,7 +128,7 @@ class Diagnostics:
 
     async def diagnose_traffic(self) -> dict[str, Any]:
         """Find cross-connects that exist but aren't moving traffic properly."""
-        q = await self.api.query("cx")
+        q = await self.api.query("cx", columns=CX_COLUMNS)
         rows = data_rows(q["rows"])
         findings = []
         for cx in rows:

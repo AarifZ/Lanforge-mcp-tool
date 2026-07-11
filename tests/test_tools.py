@@ -77,6 +77,8 @@ async def test_l3_lifecycle(client, state):
 
         stats = result_json(await client.call_tool("traffic_stats", {"cx_names": ["udp-x"]}))
         assert stats["row_count"] == 1
+        # cx throughput must be present (regression: bulk cx view omits it).
+        assert "bps rx a" in stats["rows"][0]
 
         stopped = result_json(await client.call_tool("stop_traffic", {"cx_names": ["udp-x"]}))
         assert stopped["ok"]

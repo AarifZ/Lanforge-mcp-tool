@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.1.5 — 2026-07-11
+
+Verified live end-to-end on LANforge 5.5.2: created a WPA2 VAP (5 GHz ch36),
+associated a station to it, ran bidirectional L3 UDP, and produced a report
+showing ~50 Mbps/direction at 0% loss — the full create → associate →
+traffic → monitor → report pipeline over real WiFi.
+
+Fixed:
+- `create_l3_traffic(start=True)` reported `started=False`: a cross-connect is
+  not immediately runnable after add_cx on this build, so the instant
+  set_cx_state RUNNING failed. It now polls for the cx to register, then
+  starts (and returns start_errors if it still fails).
+- The `cx` bulk view omits state/throughput columns (same sparse-view quirk as
+  port). `traffic_stats`, `diagnose_traffic` and `monitor('cx')` now request an
+  explicit cx column set, so throughput/state actually come back.
+- Report AI-summary separator changed from '·' to '-' to avoid mojibake in
+  non-UTF-8 terminals/viewers.
+
 ## 0.1.4 — 2026-07-11
 
 Found live while setting up a macvlan-upstream WiFi capacity test.

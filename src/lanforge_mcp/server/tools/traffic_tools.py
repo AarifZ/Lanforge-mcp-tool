@@ -2,16 +2,38 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Annotated, Any, Literal
 
 from fastmcp import FastMCP
 from pydantic import Field
 
+from ...api.json_api import CX_COLUMNS
 from ..context import AppContext, tool_errors
 from .station_tools import _eid_parts
 
 #: Layer-3 endpoint types accepted by add_endp.
 L3_TYPES = ("lf_udp", "lf_tcp", "lf_udp6", "lf_tcp6", "mc_udp", "mc_udp6")
+
+
+async def _start_cx(api, name: str, sid: str) -> dict:
+    """Start a cross-connect, waiting for it to register first.
+
+    A cross-connect isn't immediately runnable after add_cx on some builds
+    (5.5.2): an instant set_cx_state RUNNING returns not-ok. Poll the cx table
+    until the connection appears, then start it.
+    """
+    for _ in range(10):
+        chk = await api.query("cx", columns=["name", "state"])
+        if any(str(r.get("name")) == name for r in chk["rows"]):
+            break
+        await asyncio.sleep(1.5)
+    run = await api.command(
+        "set_cx_state",
+        {"test_mgr": "default_tm", "cx_name": name, "cx_state": "RUNNING"},
+        system_id=sid,
+    )
+    return {"started": run.ok, "start_errors": run.errors}
 
 
 def register(mcp: FastMCP, ctx: AppContext) -> None:
@@ -63,14 +85,11 @@ def register(mcp: FastMCP, ctx: AppContext) -> None:
         )
         if not cx.ok:
             return {"ok": False, "stage": "add_cx", "errors": cx.errors}
-        out = {"ok": True, "cx": name, "endpoints": [f"{name}-A", f"{name}-B"], "started": False}
+        out: dict[str, Any] = {
+            "ok": True, "cx": name, "endpoints": [f"{name}-A", f"{name}-B"], "started": False
+        }
         if start:
-            run = await api.command(
-                "set_cx_state",
-                {"test_mgr": "default_tm", "cx_name": name, "cx_state": "RUNNING"},
-                system_id=sid,
-            )
-            out["started"] = run.ok
+            out.update(await _start_cx(api, name, sid))
         return out
 
     @mcp.tool(tags={"traffic", "layer4"})
@@ -190,7 +209,9 @@ def register(mcp: FastMCP, ctx: AppContext) -> None:
         'layer4' (URLs/sec, bytes, timeouts), voip reads 'voip' (MOS, jitter).
         """
         endpoint = {"l3": "cx", "l4": "layer4", "voip": "voip"}[layer]
-        q = await ctx.api(system_id).query(endpoint)
+        # cx bulk view omits state/throughput unless columns are requested.
+        columns = CX_COLUMNS if layer == "l3" else None
+        q = await ctx.api(system_id).query(endpoint, columns=columns)
         rows = q["rows"]
         if cx_names:
             wanted = {c.lower() for c in cx_names}

@@ -29,6 +29,15 @@ logger = logging.getLogger(__name__)
 META_KEYS = {"handler", "uri", "warnings", "errors", "empty", "text", "timestamp"}
 
 
+#: Curated column sets for tables whose bulk view omits dynamic fields on some
+#: LANforge builds (5.5.2 returns null state/throughput without ?fields=).
+#: All names are catalog-valid; the GUI rejects unknown field names.
+CX_COLUMNS = [
+    "name", "state", "type", "bps rx a", "bps rx b",
+    "rx drop % a", "rx drop % b", "avg rtt", "pkt rx a", "pkt rx b",
+]
+
+
 def is_pseudo_row(row: dict[str, Any]) -> bool:
     """True for the GUI's handler-status pseudo rows.
 

@@ -61,9 +61,13 @@ def register(mcp: FastMCP, ctx: AppContext) -> None:
         traffic run yields throughput-over-time with an AI-ready summary.
         The result can be fed straight into generate_report.
         """
+        from ...api.json_api import CX_COLUMNS
         from ...reports.engine import summarize_samples
 
         api = ctx.api(system_id)
+        # The cx bulk view omits state/throughput unless columns are requested.
+        if columns is None and endpoint.strip("/") == "cx":
+            columns = CX_COLUMNS
         samples = []
         deadline = time.monotonic() + duration_sec
         total = max(1, int(duration_sec / interval_sec))

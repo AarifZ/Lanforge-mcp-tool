@@ -69,5 +69,18 @@ remote script execution all verified end-to-end on this unit).
 13. Responses may carry the warning `LFHttp: No license terms registered yet`
     — unrelated to the request; ignore it.
 
+14. **A cross-connect is not runnable immediately after `add_cx`.** An instant
+    `set_cx_state RUNNING` returns not-ok; poll the `cx` table until the
+    connection appears (a second or two), then start it.
+
+15. **The `cx` bulk view is sparse too** — `state`, `bps rx a/b`, drops are
+    null unless requested via `?fields=`. Same for most tables; always pass
+    columns when reading dynamic values.
+
+16. **AP-in-a-box works well**: a WPA2 VAP (add_vap + static-IP set_port) on one
+    radio and a station on another associate and pass traffic even on the same
+    chassis; 5 GHz keeps clear of a 2.4 GHz external AP. Verified ~50 Mbps/dir
+    L3 UDP at 0% loss, station↔VAP ping ~5 ms.
+
 When you hit a new version-specific quirk: add it here, teach the mock in
 `tests/mock_lanforge.py` to emulate it, and pin it with a test.

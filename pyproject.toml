@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "lanforge-mcp"
-version = "0.1.4"
+version = "0.1.5"
 description = "Production-grade MCP server exposing the complete power of Candela LANforge to any MCP-compatible AI model"
 readme = "README.md"
 license = { text = "MIT" }
